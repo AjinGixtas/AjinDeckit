@@ -1,0 +1,35 @@
+from curses import wrapper, curs_set, error, init_pair, color_pair
+from time import sleep
+from components import key_state_tracker, scene_manager, resources
+def _main(stdscr):
+    global old_settings
+    key_state_tracker._start()
+    resources._start(stdscr)
+    scene_manager._start()
+    production_mode = False
+    
+    curs_set(0)
+    
+    
+    while True:
+        if not production_mode: scene_manager.current_page._update()
+        else: 
+            try: scene_manager.current_page._update()
+            except error as e: 
+                print("Error encountered! Maybe resizing the terminal window?")
+                _end()
+                return
+            except DatabaseError as e:
+                print("Save data corrupted! \nPlease send it to ajingixtascontact@gmail.com for the author to investigate. \nLook at the `Contact` section in the 'README.MD' file for more detail.")
+            except Exception as e:
+                print("Unexpected error encountered! \nIf the error persist, please report it at ajingixtascontact@gmail.com \nLook at the `Contact` section in the 'README.MD' file for more detail.")
+                _end()
+                return
+        if key_state_tracker.get_key_state('ctrl', key_state_tracker.JUST_PRESSED) and key_state_tracker.get_key_state('q', key_state_tracker.JUST_PRESSED):
+            _end()
+            return
+        key_state_tracker._update()
+        sleep(.04166)
+
+if __name__ == '__main__':
+    wrapper(_main)

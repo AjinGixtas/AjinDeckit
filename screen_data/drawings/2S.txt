@@ -1,0 +1,9 @@
+7 9
+┌───────┐
+│2      │
+│   ♠   │
+│       │
+│   ♠   │
+│      2│
+└───────┘
+Created by "AjinGixtas" (https://github.com/AjinGixtas)

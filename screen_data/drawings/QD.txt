@@ -1,0 +1,9 @@
+7 9	
+┌───────┐
+│Q  WW  │
+│♦  {)  │
+│  ╱%│  │
+│ │%H│ ♦│
+│ │MM│ Q│
+└───────┘
+Created by "AjinGixtas" (https://github.com/AjinGixtas)
