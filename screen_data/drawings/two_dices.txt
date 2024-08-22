@@ -1,8 +1,4 @@
 6 18
-  ____
- /\' .\    _____
-/: \___\  / .  /\
-\' / . / /____/..\
- \/___/  \'  '\  /
-          \'__'\/
+
 Created by "valkyrie" (https://www.asciiart.eu/miscellaneous/dice)
+Derivative of this art is used in various location inside the app.

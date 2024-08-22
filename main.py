@@ -1,15 +1,14 @@
-from curses import wrapper, curs_set, error, init_pair, color_pair
+from curses import wrapper, curs_set, error
 from time import sleep
 from components import key_state_tracker, scene_manager, resources
 def _main(stdscr):
     global old_settings
-    key_state_tracker._start()
     resources._start(stdscr)
     scene_manager._start()
+    key_state_tracker._start()
     production_mode = False
     
     curs_set(0)
-    
     
     while True:
         if not production_mode: scene_manager.current_page._update()
@@ -30,6 +29,11 @@ def _main(stdscr):
             return
         key_state_tracker._update()
         sleep(.04166)
-
+def _end():
+    from sys import exit
+    resources._end()
+    key_state_tracker._end()
+    scene_manager._end()
+    exit()
 if __name__ == '__main__':
     wrapper(_main)
