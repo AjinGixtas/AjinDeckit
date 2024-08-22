@@ -24,6 +24,7 @@ def _main(stdscr):
                 print("Unexpected error encountered! \nIf the error persist, please report it at ajingixtascontact@gmail.com \nLook at the `Contact` section in the 'README.MD' file for more detail.")
                 _end()
                 return
+        if key_state_tracker.get_key_state('esc'): scene_manager.change_page(scene_manager.MENU_INDEX)
         if key_state_tracker.get_key_state('ctrl', key_state_tracker.JUST_PRESSED) and key_state_tracker.get_key_state('q', key_state_tracker.JUST_PRESSED):
             _end()
             return
