@@ -1,4 +1,4 @@
-8 48
+9 48
 [W] / [Up] - Move up
 [S] / [Down] - Move down
 [A] / [Left] - Move left
@@ -7,3 +7,4 @@
 [Tab] - Change focus zone
 [Q] - Return to parent page
 [Ctrl] + [Q] - Quit application
+[Ctrl] + [S] - Game settings

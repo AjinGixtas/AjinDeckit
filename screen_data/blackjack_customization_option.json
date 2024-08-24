@@ -1,0 +1,55 @@
+{
+  "doubleDown": {
+    "type": "boolean",
+    "enabled": true,
+    "title": "Double Down",
+    "description": [ "Players can double their bet and draw exactly one additional card." ]
+  },
+  "splitOptions": {
+    "type": "boolean",
+    "enabled": true,
+    "title": "Allow for Split",
+    "description": [ "If the player’s first two cards are of the same value, they can split them into two separate hands, each with its own bet." ], 
+    "options": {
+      "resplit": {
+        "type": "boolean",
+        "enabled": true,
+        "title": "Allow for Resplit",
+        "description": [ "If the player draws another pair after splitting, they can split again." ]
+      },
+      "doubleDownAfterSplit": {
+        "type": "boolean",
+        "enabled": true,
+        "title": "Allow for Double Down After Split",
+        "description": [ "Players can double down on either or both of the hands created by splitting." ]
+      }
+    }
+  },
+  "surrender": {
+    "type": "boolean",
+    "enabled": true,
+    "title": "Allow for Surrender",
+    "description": [ "Players can forfeit half of their original bet and end their round to move on to the next hand." ]
+  },
+  "dealerBehaviorOnSoft17": {
+    "type": "switch",
+    "enabled": true,
+    "options": {
+      "stand": {
+        "description": [ "The dealer must stop drawing cards if they have a hand totaling 17 that includes an Ace counted as 11 (a 'soft' 17)." ]
+      },
+      "hit": {
+        "description": [ "The dealer must draw another card if they have a hand totaling 17 that includes an Ace counted as 11 (a 'soft' 17)." ]
+      }
+    }
+  },
+  "dealerPeeksForBlackjack": {
+    "type": "boolean",
+    "enabled": false,
+    "title": "Allow Dealer to Peek for Blackjack",
+    "description": [
+      "When the dealer’s upcard is an Ace or a 10-value card, the dealer checks their hole card to see if they have a Blackjack. This rule helps streamline the process and save time.",
+      "Note: This setting is disabled by default to make the game feel more 'fair.' Enabling or disabling this option does not affect the game's overall outcome; it is only intended to clarify how the game handles potential Blackjacks and might help avoid confusion for players unfamiliar with how the computer’s RNG works."
+    ]
+  }
+}

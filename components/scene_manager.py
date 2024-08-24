@@ -1,4 +1,4 @@
-from pages import menu, game_menu
+from pages import menu, game_menu, blackjack
 from components import resources
 current_index = -1
 current_page = menu
@@ -13,6 +13,7 @@ def change_page(index):
     current_index = index
     if current_index == MENU_INDEX: current_page = menu
     elif current_index == GAME_MENU_INDEX: current_page = game_menu
+    elif current_index == BLACKJACK_INDEX: current_page = blackjack
     draw_screen_bone(current_page.KEY_MAP_DISPLAY_TABLE)
     current_page._start()
 
@@ -36,8 +37,8 @@ def draw_screen_bone(key_map_display_table):
         cursor_x = 2
         cursor_y = 1
         for i in range(y):
-            if not key_map_display_table[i]: continue
             key_info = f.readline().rstrip()
+            if not key_map_display_table[i]: continue
             pad.addstr(cursor_y, cursor_x, key_info)
             cursor_x += padding
             if cursor_x + padding >= columns and i!=y-1: 

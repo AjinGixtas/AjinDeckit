@@ -9,7 +9,12 @@ def _main(stdscr):
     production_mode = False
     
     curs_set(0)
+    origin_x, origin_y, rows, columns = scene_manager.get_drawable_screen_data()
     
+    if rows < 32 or columns < 120:
+        print("The window size is too small, some feature and graphic will not be rendered correctly. Consider resizing it!")
+        print(f"Current dimension: {columns}×{rows}, required: 120×32")
+        return
     while True:
         if not production_mode: scene_manager.current_page._update()
         else: 
@@ -24,7 +29,7 @@ def _main(stdscr):
                 print("Unexpected error encountered! \nIf the error persist, please report it at ajingixtascontact@gmail.com \nLook at the `Contact` section in the 'README.MD' file for more detail.")
                 _end()
                 return
-        if key_state_tracker.get_key_state('esc'): scene_manager.change_page(scene_manager.MENU_INDEX)
+        if key_state_tracker.get_key_state('q'): scene_manager.change_page(scene_manager.MENU_INDEX)
         if key_state_tracker.get_key_state('ctrl', key_state_tracker.JUST_PRESSED) and key_state_tracker.get_key_state('q', key_state_tracker.JUST_PRESSED):
             _end()
             return

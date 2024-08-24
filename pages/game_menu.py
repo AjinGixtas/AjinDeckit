@@ -1,7 +1,7 @@
 from components import resources, image_drawer, scene_manager
 from components.key_state_tracker import get_key_state, get_axis
 from curses import newpad
-KEY_MAP_DISPLAY_TABLE = [1,1,1,1,1,0,0,1]
+KEY_MAP_DISPLAY_TABLE = [0,0,1,1,1,0,1,1,1]
 origin_x, origin_y, rows, columns = 0, 0, 0, 0
 MENU_DIV = {}
 def _start():
