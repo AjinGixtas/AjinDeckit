@@ -12,11 +12,15 @@ def ctrl_q():
     if kbhit(): _ = getch()
     key_states[JUST_PRESSED].append(GlobalKey('ctrl'))
     key_states[JUST_PRESSED].append(GlobalKey('q'))
+def ctrl_s():
+    if kbhit(): _ = getch()
+    key_states[JUST_PRESSED].append(GlobalKey('ctrl'))
+    key_states[JUST_PRESSED].append(GlobalKey('s'))
 def _start():
     global keyboard_listener, hotkey_listener
     keyboard_listener = Listener(on_press=on_press, on_release=on_release)
     
-    hotkeys = { '<ctrl>+q': ctrl_q }
+    hotkeys = { '<ctrl>+q': ctrl_q, '<ctrl>+s': ctrl_s }
     hotkey_listener = GlobalHotKeys(hotkeys)
     
     keyboard_listener.start()

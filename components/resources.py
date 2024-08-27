@@ -17,3 +17,7 @@ def get_color_pair_obj(index): return color_pair(index)
 def _update(): pass
 def _end(): pass
 def clip_range(value, min, max): return min if value < min else max if max < value else value
+def get_first_dupe_index(arr, val):
+    for i in range(len(arr)): 
+        if arr[i] == val: return i
+    return -1

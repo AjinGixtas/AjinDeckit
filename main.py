@@ -11,9 +11,9 @@ def _main(stdscr):
     curs_set(0)
     origin_x, origin_y, rows, columns = scene_manager.get_drawable_screen_data()
     
-    if rows < 32 or columns < 120:
+    if rows < 31 or columns < 118:
         print("The window size is too small, some feature and graphic will not be rendered correctly. Consider resizing it!")
-        print(f"Current dimension: {columns}×{rows}, required: 120×32")
+        print(f"Current dimension: {columns}×{rows}, required: 118×31")
         return
     while True:
         if not production_mode: scene_manager.current_page._update()
