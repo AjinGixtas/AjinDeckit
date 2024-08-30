@@ -2,8 +2,8 @@
 ╭───────╮
 │K  WW  │
 │♦  {)  │
-│  </|  │
-│ │/>| ♦│
+│  </│  │
+│ │/>│ ♦│
 │ │MKT K│
 ╰───────╯
 Created by "AjinGixtas" (https://github.com/AjinGixtas)

@@ -7,4 +7,4 @@
 [Tab] - Change focus zone
 [Q] - Return to parent page
 [Ctrl] + [Q] - Quit application
-[Ctrl] + [S] - Game settings
+[Enter] - Game settings

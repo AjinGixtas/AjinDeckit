@@ -13,7 +13,7 @@
 │♠  │♠  │♠  │♠  │♠  │♠  │♠  │♠  │♠  │♠  │♠  │♠  │♠  │♠ ╱ ╲  │ │ - Ace (A) worth 1 or 11 points, whichever is better. │
 │   │   │   │   │   │   │   │   │   │   │   │   │   │ (_ _) │ └──────────────────────────────────────────────────────┘
 │   │   │   │   │   │   │   │   │   │   │   │   │   │   |  ♠│                    ╔─────────────────╗
-│   │   │   │   │   │   │   │   │   │   │   │   │   │      A│                    │ [E] - SEE BOARD │
+│   │   │   │   │   │   │   │   │   │   │   │   │   │      A│                    │ [A] - SEE BOARD │
 ╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───────╯                    ╚─────────────────╝
  ×   ×   ×   ×   ×   ×   ×   ×   ×   ×   ×   ×   ×     × 
 ╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───────╮
@@ -21,13 +21,13 @@
 │♦  │♦  │♦  │♦  │♦  │♦  │♦  │♦  │♦  │♦  │♦  │♦  │♦  │♦ ╱ ╲  │
 │   │   │   │   │   │   │   │   │   │   │   │   │   │ ‹   › │
 │   │   │   │   │   │   │   │   │   │   │   │   │   │  ╲ ╱ ♦│
-│   │   │   │   │   │   │   │   │   │   │   │   │   │   V  A│
-╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───────╯
- ×   ×   ×   ×   ×   ×   ×   ×   ×   ×   ×   ×   ×     ×      New cool fact of me: Outer Wild and Rain World are great
-╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───────╮ game. DO NOT look up any review or guide. Just play
-│2  │3  │4  │5  │6  │7  │8  │9  │10 │11 │J  │Q  │K  │A _ _  │ them. You can only play it blind once. Don't ruin it for
-│♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥( ╵ ) │ yourself.
-│   │   │   │   │   │   │   │   │   │   │   │   │   │  ╲ ╱  │
-│   │   │   │   │   │   │   │   │   │   │   │   │   │   V  ♥│ I would have recommended Omori and Undertale too. But
-│   │   │   │   │   │   │   │   │   │   │   │   │   │      A│ doing so remind me of my 17 expired calendar, so I
-╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───────╯ choose not to.
+│   │   │   │   │   │   │   │   │   │   │   │   │   │   V  A│ New cool fact of me: Limited hangout is the act of
+╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───────╯ deliberately reveal confidential detail that's a little
+ ×   ×   ×   ×   ×   ×   ×   ×   ×   ×   ×   ×   ×     ×      embrassing or incriminating. With the intend to distract 
+╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───╭───────╮ people from more important, confidential information
+│2  │3  │4  │5  │6  │7  │8  │9  │10 │11 │J  │Q  │K  │A _ _  │ from getting uncovered.
+│♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥  │♥( ╵ ) │ 
+│   │   │   │   │   │   │   │   │   │   │   │   │   │  ╲ ╱  │ Also, I finished Outer Wild. It was fun. I'm gonna play
+│   │   │   │   │   │   │   │   │   │   │   │   │   │   V  ♥│ "The Witness" next. I heard it's pretty fun too.
+│   │   │   │   │   │   │   │   │   │   │   │   │   │      A│ 
+╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───╰───────╯ Death of the Author.
