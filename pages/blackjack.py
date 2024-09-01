@@ -1,14 +1,14 @@
 from components import resources, image_drawer, scene_manager, key_state_tracker
 from components.key_state_tracker import get_key_state, get_axis
-from curses import newpad
+from curses import newpad, color_pair
 from random import randint
 KEY_MAP_DISPLAY_TABLE = [0,0,0,0,0,0,1,1,1]
 origin_x, origin_y, rows, columns = 0, 0, 0, 0
-BOARD_DIV   = { 'index':0, 'src':'blackjack_board.txt', 'deck':[], 'player_hands_data':[{'ace':0, 'point':0, 'cards':[]}], 'player_focused_hand_index':0, 'dealer_hand_data':{'ace':0, 'point':0, 'cards':[], 'is_face_up':[]}, 'y_pos':(6,18), 'game_result_stat':[0,0,0],  'round_state':0 }
-DECK_DIV    = { 'index':1, 'src':'blackjack_deck.txt', 'card_counts':{}, 'x_pos':(2,6,10,14,18,22,26,30,34,38,42,46,50,56), 'y_pos':(0,8,16,24) }
+BOARD_DIV   = { 'index':0, 'src':'blackjack_board.txt', 'deck':[], 'player_hands_data':[{'ace':0, 'point':0, 'cards':[]}], 'player_focused_hand_index':0, 'dealer_hand_data':{'ace':0, 'point':0, 'cards':[], 'is_face_up':[]}, 'y_pos':(6,18), 'game_result_stat':[0,0,0],  'round_state':0, 'player_hand_display_coord': {'x':(48,62,76), 'y':(30,31,32)} }
+DECK_DIV    = { 'index':1, 'src':'blackjack_deck.txt', 'card_counts':{}, 'x_pos':(2,6,10,14,18,22,26,30,34,38,42,46,52), 'y_pos':(0,8,16,24) }
 SETTING_DIV = { 'index':2, 'src':'blackjack_setting.txt', 'cursor_option_values':[0,0,0,1], 'cursor_option_ranges':((0,1),(0,1),(0,1),(1,9)), 'cursor_display_values':(('-HIT-','STAND'),('← _ →','← * →'),('← _ →','← * →'),2),'cursor_index':0}
 curent_focus_zone_index = BOARD_DIV['index']
-SUIT_SYMBOL, SUITS, RANKS, POINTS = ('♣', '♠', '♦', '♥'), ('C','S','D','H'), ('2','3','4','5','6','7','8','9','10','J','Q','K','A'), (2,3,4,5,6,7,8,9,10,10,10,10,11)
+SUIT_SYMBOL, SUITS, RANKS, POINTS = ('♣', '♠', '♦', '♥'), ('C','S','D','H'), ('2','3','4','5','6','7','8','9','10','J','Q','K','A'), ( 2,  3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 10, 10, 10, 11)
 def _start():
     global origin_x, origin_y, rows, columns
     origin_x, origin_y, rows, columns = scene_manager.get_drawable_screen_data()
@@ -31,27 +31,30 @@ def _end():
 
 def update_board():
     global BOARD_DIV
-    if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED):
-        render_div(DECK_DIV)
-        return
-    if key_state_tracker.get_key_state('e', key_state_tracker.JUST_PRESSED):
-        if BOARD_DIV['round_state'] < 2: player_draw_card()
-        else: dealer_draw_card()
-    if key_state_tracker.get_key_state('d', key_state_tracker.JUST_PRESSED):
-        # Double down
-        pass
-    if key_state_tracker.get_key_state('f', key_state_tracker.JUST_PRESSED):
-        split()
-    if key_state_tracker.get_key_state('r', key_state_tracker.JUST_PRESSED):
-        # Surrender
-        pass
-    if key_state_tracker.get_key_state('g', key_state_tracker.JUST_PRESSED):
-        finish_turn()
-    move_vector = key_state_tracker.get_axis('w', 's')
-    if move_vector != 0:
-        BOARD_DIV['player_focused_hand_index'] = resources.clip_range(BOARD_DIV['player_focused_hand_index'] + move_vector, 0, len(BOARD_DIV['player_hands_data']) - 1)
-        rerender_player_hand()
     render_div(BOARD_DIV)
+    if BOARD_DIV['round_state'] == 0:
+        if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
+        elif key_state_tracker.get_key_state('e', key_state_tracker.JUST_PRESSED): player_draw_card()
+        return
+    if BOARD_DIV['round_state'] == 1:
+        if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
+        elif key_state_tracker.get_key_state('e', key_state_tracker.JUST_PRESSED): player_draw_card()
+        elif key_state_tracker.get_key_state('d', key_state_tracker.JUST_PRESSED): double_down()
+        elif key_state_tracker.get_key_state('f', key_state_tracker.JUST_PRESSED): split()
+        elif key_state_tracker.get_key_state('r', key_state_tracker.JUST_PRESSED): surrender()
+        elif key_state_tracker.get_key_state('g', key_state_tracker.JUST_PRESSED): finish_turn()
+        move_vector = key_state_tracker.get_axis('w', 's')
+        if move_vector != 0:
+            BOARD_DIV['player_focused_hand_index'] = resources.clip_range(BOARD_DIV['player_focused_hand_index'] + move_vector, 0, len(BOARD_DIV['player_hands_data']) - 1)
+            BOARD_DIV['pad'].addstr(17, 70, str(BOARD_DIV['player_focused_hand_index']+1).rjust(2, '0'))
+            rerender_player_hand()
+        return
+    if BOARD_DIV['round_state'] == 2:
+        if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
+        elif key_state_tracker.get_key_state('e', key_state_tracker.JUST_PRESSED): dealer_draw_card(True)
+        return
+    if BOARD_DIV['round_state'] == 3:
+        if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
 def update_deck():
     if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(BOARD_DIV)
 cursor_option_values = None
@@ -83,7 +86,16 @@ def new_game():
     global curent_focus_zone_index, DECK, PLAYER_HAND, DEALER_HAND, BOARD_DIV, DECK_DIV, SETTING_DIV
     BOARD_DIV, DECK_DIV, SETTING_DIV = build_div(BOARD_DIV), build_div(DECK_DIV), build_div(SETTING_DIV)
     BOARD_DIV['game_result_stat'] = [0,0,0]
+    image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / '___card.txt', 101, 11, color_pair_obj=resources.get_color_pair_obj(3))
+    for y in range(len(SUITS)):
+        for x in range(len(RANKS)):
+            image_drawer.draw_colored_image(DECK_DIV['pad'], resources.screen_data_path/'drawings'/'___card.txt', 4*x, 1+8*y, color_pair_obj=resources.get_color_pair_obj(2 if SUITS[y] in ('H', 'D') else 1))
+            DECK_DIV['pad'].addstr(2+8*y, 1+4*x, RANKS[x], resources.get_color_pair_obj(2 if SUITS[y] in ('H', 'D') else 1))
+            DECK_DIV['pad'].addstr(3+8*y, 1+4*x, SUIT_SYMBOL[y], resources.get_color_pair_obj(2 if SUITS[y] in ('H', 'D') else 1))
     BOARD_DIV['pad'].refresh(0, 0, BOARD_DIV['origin'][0], BOARD_DIV['origin'][1], BOARD_DIV['end'][0], BOARD_DIV['end'][1])
+    BOARD_DIV['pad'].addstr(4, 100, '000W', resources.get_color_pair_obj(3))
+    BOARD_DIV['pad'].addstr(4, 107, '000D', resources.get_color_pair_obj(4))
+    BOARD_DIV['pad'].addstr(4, 114, '000L', resources.get_color_pair_obj(2))
     new_round()
 def new_round():
     global curent_focus_zone_index, BOARD_DIV, DECK_DIV
@@ -92,16 +104,15 @@ def new_round():
     BOARD_DIV['dealer_hand_data'] =   {'ace':0, 'point':0, 'cards':[], 'is_face_up':[]}
     BOARD_DIV['player_focused_hand_index'] = 0
     BOARD_DIV['round_state'] = 0
-    BOARD_DIV['dealer_draw'] = False
     curent_focus_zone_index = BOARD_DIV['index']
     
     DECK_DIV['card_counts'] = {f'{rank}{suit}': SETTING_DIV['cursor_option_values'][3] for suit in SUITS for rank in RANKS}
     [DECK_DIV['pad'].addstr(y, x, str(SETTING_DIV['cursor_option_values'][3])) for x in DECK_DIV['x_pos'] for y in DECK_DIV['y_pos']]
     BOARD_DIV['pad'].addstr(10, 106, str(52 * SETTING_DIV['cursor_option_values'][3]).rjust(3, '0'))
     BOARD_DIV['pad'].addstr(10, 102, str(len(BOARD_DIV['deck'])).rjust(3, '0'))
-    BOARD_DIV['pad'].addstr(27, 1, '╔───────────────────╗ ╔───────────────────╗ ╔─────────────╗ ╔─────────────────╗ ╔───────────────────────────────╗')
-    BOARD_DIV['pad'].addstr(28, 1, '│ [E] - START ROUND │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [G] - STOP AND PASS TO DEALER │')
-    BOARD_DIV['pad'].addstr(29, 1, '╚───────────────────╝ ╚───────────────────╝ ╚─────────────╝ ╚─────────────────╝ ╚───────────────────────────────╝')
+    BOARD_DIV['pad'].addstr(28, 1, '╔───────────────────╗ ╔───────────────────╗ ╔─────────────╗ ╔─────────────────╗ ╔───────────────────────────────╗')
+    BOARD_DIV['pad'].addstr(29, 1, '│ [E] - START ROUND │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [G] - STOP AND PASS TO DEALER │')
+    BOARD_DIV['pad'].addstr(30, 1, '╚───────────────────╝ ╚───────────────────╝ ╚─────────────╝ ╚─────────────────╝ ╚───────────────────────────────╝')
     BOARD_DIV['pad'].refresh(0, 0, BOARD_DIV['origin'][0], BOARD_DIV['origin'][1], BOARD_DIV['end'][0], BOARD_DIV['end'][1])
 
 def build_div(div):
@@ -135,9 +146,16 @@ def draw_random_card(is_face_up=True):
     return card
 def player_draw_card():
     global BOARD_DIV
+    if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] == 21:
+        BOARD_DIV['pad'].addstr(27, 11, 'You already got the best possible hand, we are not letting you ruin it!')
+        return
     if BOARD_DIV['round_state'] == 0: 
-        dealer_intial_draw()
         BOARD_DIV['round_state'] = 1
+        dealer_draw_card(False)
+        dealer_draw_card(True)
+        player_draw_card()
+        BOARD_DIV['pad'].addstr(5, 26, f'{POINTS[resources.get_first_dupe_index(RANKS, BOARD_DIV['dealer_hand_data']['cards'][1][:-1])]}+??')
+        BOARD_DIV['pad'].addstr(30,9,'DRAW A CARD')
     card = draw_random_card()
     if card[0] == 'A': BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace'] += 1
     BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] += POINTS[resources.get_first_dupe_index(RANKS, card[:-1])]
@@ -146,14 +164,16 @@ def player_draw_card():
         BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] -= 10
         BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace'] -= 1
     rerender_player_hand()
-def dealer_draw_card():    
+def dealer_draw_card(is_face_up):    
     global BOARD_DIV
-    if BOARD_DIV['dealer_hand_data']['point'] > 17 or (BOARD_DIV['dealer_hand_data']['point'] == 17 and SETTING_DIV['cursor_option_values'][0] == 1): return
-    card = draw_random_card(False)
+    if BOARD_DIV['dealer_hand_data']['point'] > 17 or (BOARD_DIV['dealer_hand_data']['point'] == 17 and SETTING_DIV['cursor_option_values'][0] == 1): 
+        game_end()
+        return
+    card = draw_random_card(is_face_up)
     if card[0] == 'A': BOARD_DIV['dealer_hand_data']['ace'] += 1
     BOARD_DIV['dealer_hand_data']['point'] += POINTS[resources.get_first_dupe_index(RANKS, card[:-1])]
     BOARD_DIV['dealer_hand_data']['cards'].append(card)
-    BOARD_DIV['dealer_hand_data']['is_face_up'].append(True)
+    BOARD_DIV['dealer_hand_data']['is_face_up'].append(is_face_up)
     if BOARD_DIV['dealer_hand_data']['ace'] > 0:
         if BOARD_DIV['dealer_hand_data']['point'] > 21:
             BOARD_DIV['dealer_hand_data']['point'] -= 10
@@ -162,50 +182,56 @@ def dealer_draw_card():
         # Blackjack peaked
         pass
     rerender_dealer_hand()
+    if BOARD_DIV['dealer_hand_data']['point'] > 21:
+        BOARD_DIV['pad'].addstr(27, 1, 'Dealer busted! All standing hands won.')
+        game_end()
 
 def double_down():
     pass
 def split():
-    if not (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards']) == 2 and BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][0][0] == BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][1][0]): return
+    global BOARD_DIV
+    if not (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards']) == 2 and BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][0][0] == BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][1][0]): 
+        BOARD_DIV['pad'].addstr(28, 30, 'Your hand must have exactly 2 card of the same rank!')
+        return
     card = BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'].pop()
     BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] = 11 if card[0] == 'A' else int(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] / 2)
     BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace'] = int(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace'] / 2)
     BOARD_DIV['player_hands_data'].append({'ace': (1 if card[0]=='A' else 0), 'point':POINTS[resources.get_first_dupe_index(RANKS, card[:-1])], 'cards':[card]})
+    BOARD_DIV['pad'].addstr(17,73,str(len(BOARD_DIV['player_hands_data'])).rjust(2, '0'))
     rerender_player_hand()
 def finish_turn():
     BOARD_DIV['dealer_hand_data']['is_face_up'][0] = True
     BOARD_DIV['round_state'] = 2
     rerender_dealer_hand()
     if SETTING_DIV['cursor_option_values'][2] == 0:
-        BOARD_DIV['pad'].addstr(27, 1, '                                       ╔────────────────────────────────╗                                        ')
-        BOARD_DIV['pad'].addstr(28, 1, '                                       │ => [E] - DEALER DRAW A CARD <= │                                        ')
-        BOARD_DIV['pad'].addstr(29, 1, '                                       ╚────────────────────────────────╝                                        ')
+        BOARD_DIV['pad'].addstr(28, 1, '╔────────────────────────────────╗                                                                                   ')
+        BOARD_DIV['pad'].addstr(29, 1, '│ => [E] - DEALER DRAW A CARD <= │                                                                                   ')
+        BOARD_DIV['pad'].insstr(30, 1, '╚────────────────────────────────╝                                                                                   ')
         return
     while BOARD_DIV['dealer_hand_data']['point'] < 17: 
-        dealer_draw_card()
-        print(BOARD_DIV['dealer_hand_data'])
-    if BOARD_DIV['dealer_hand_data']['point'] == 17 and BOARD_DIV['dealer_hand_data']['ace'] > 1 and SETTING_DIV['cursor_option_values'][0] == 0: dealer_draw_card()
-     
-def dealer_intial_draw():
-    global BOARD_DIV
-    dealer_draw_card()
-    dealer_draw_card()
-    BOARD_DIV['dealer_hand_data']['is_face_up'] = [False, True]
-
-    rerender_dealer_hand()
+        dealer_draw_card(True)
+    dealer_draw_card(True)
+    dealer_draw_card(True)
+def surrender():
+    pass
 
 def rerender_player_hand():
     global BOARD_DIV
     blank = ' ' * 89
     for i in range(7): BOARD_DIV['pad'].addstr(BOARD_DIV['y_pos'][1] + i, 2, blank)
     for i in range(len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])):
-        image_drawer.draw_bw_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][1])
+        image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][1], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i][1] in ('H', 'D') else 1))
 def rerender_dealer_hand():
     global BOARD_DIV
     blank = ' ' * 89
     for i in range(7): BOARD_DIV['pad'].addstr(BOARD_DIV['y_pos'][0] + i, 2, blank)
     for i in range(len(BOARD_DIV['dealer_hand_data']['cards'])):
         if BOARD_DIV['dealer_hand_data']['is_face_up'][i] == True: 
-            image_drawer.draw_bw_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['dealer_hand_data']['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0])
-        else: image_drawer.draw_bw_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / '___card.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0])
-        
+            image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['dealer_hand_data']['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['dealer_hand_data']['cards'][i][1] in ('H', 'D') else 1))
+        else: image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / '___card.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0], color_pair_obj=resources.get_color_pair_obj(3))
+def game_end():
+    global BOARD_DIV
+    BOARD_DIV['round_state'] = 3
+    BOARD_DIV['pad'].addstr(28, 37, 'DEALER:')
+    BOARD_DIV['pad'].addstr(29, 37, 'PLAYER:')
+    BOARD_DIV['pad'].addstr(28, 45, f'{BOARD_DIV['dealer_hand_data']['point']} in {len(BOARD_DIV['dealer_hand_data']['cards'])}'.rjust(8,'  '), resources.get_color_pair_obj(2))

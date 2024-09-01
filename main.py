@@ -7,7 +7,6 @@ def _main(stdscr):
     scene_manager._start()
     key_state_tracker._start()
     production_mode = False
-    
     curs_set(0)
     origin_x, origin_y, rows, columns = scene_manager.get_drawable_screen_data()
     

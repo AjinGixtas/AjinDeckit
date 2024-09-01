@@ -1,3 +1,4 @@
+from curses import A_DIM
 def draw_bw_image(layer, image_path, x_origin, y_origin, x_img_origin=0, y_img_origin=0, x_size=-1, y_size=-1):
     with open(image_path, 'r', encoding='utf-8') as f:
         try: height, width = map(int, f.readline().split())
