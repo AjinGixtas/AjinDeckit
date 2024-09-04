@@ -10,12 +10,8 @@
         ╔════════════════════════════════════════════════════════════════════════════════════════════════════╗
         ║ (-HIT-) - Dealer will HIT (draw a card) or STAND (stop drawing card) when hitting "soft 17".       ║
         ║ (← _ →) - Dealer will peek for Blackjack. Speed up the game but might be confusing for new player. ║
-        ║ (← _ →) - Dealer will draw automatically. Speed up the game but might be confusing for new player. ║
+        ║ (← _ →) - Dealer will draw at your own pace. Have fun!                                             ║
         ║ (←   →) - Amount of deck shuffled into the pile.                                                   ║
-        ║                                                                                                    ║
-        ║                                                                                                    ║
-        ║                                                                                                    ║
-        ║                                                                                                    ║
         ║                                                                                                    ║
         ║ NOTE: If you started the round, it will be counted as a loss as you move on to the new game.       ║
         ║                                                                                                    ║
@@ -24,9 +20,4 @@
                              │   [E] - BACK AND DISCARD SETTING   │ │ [ENTER] - NEW GAME │
                              ╚────────────────────────────────────╝ ╚────────────────────╝
 
-
-
-
-
-
-
+    Due to technical laziness, no guide will be included, can you just please google it? Thank you so much ^^

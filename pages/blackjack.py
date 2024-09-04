@@ -4,7 +4,7 @@ from curses import newpad, color_pair
 from random import randint
 KEY_MAP_DISPLAY_TABLE = [0,0,0,0,0,0,1,1,1]
 origin_x, origin_y, rows, columns = 0, 0, 0, 0
-BOARD_DIV   = { 'index':0, 'src':'blackjack_board.txt', 'deck':[], 'player_hands_data':[{'ace':0, 'point':0, 'cards':[], 'doubled_down':False, 'surrendered':False }], 'player_focused_hand_index':0, 'dealer_hand_data':{'ace':0, 'point':0, 'cards':[], 'is_face_up':[]}, 'y_pos':(6,18), 'game_result_stat':[0,0,0],  'round_state':0, 'player_hand_ratio_coord': {'x':(48,62,76), 'y':(29,30,31)}}
+BOARD_DIV   = { 'index':0, 'src':'blackjack_board.txt', 'deck':[], 'player_hands_data':[{'ace':0, 'point':0, 'cards':[], 'doubled_down':False, 'surrendered':False }], 'player_focused_hand_index':0, 'dealer_hand_data':{'ace':0, 'point':0, 'insurance_bet':False, 'cards':[], 'is_face_up':[]}, 'y_pos':(6,18), 'game_result':[0,0,0], 'round_result':[0,0,0],  'round_state':0, 'player_hand_ratio_coord': {'x':(48,62,76), 'y':(29,30,31)}}
 DECK_DIV    = { 'index':1, 'src':'blackjack_deck.txt', 'card_counts':{}, 'x_pos':(2,6,10,14,18,22,26,30,34,38,42,46,52), 'y_pos':(0,8,16,24) }
 SETTING_DIV = { 'index':2, 'src':'blackjack_setting.txt', 'cursor_option_values':[0,0,0,1], 'cursor_option_ranges':((0,1),(0,1),(0,1),(1,9)), 'cursor_display_values':(('-HIT-','STAND'),('← _ →','← * →'),('← _ →','← * →'),2),'cursor_index':0}
 curent_focus_zone_index = BOARD_DIV['index']
@@ -33,10 +33,35 @@ def update_board():
     global BOARD_DIV
     render_div(BOARD_DIV)
     if BOARD_DIV['round_state'] == 0:
+        # Begin the round
         if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
-        elif key_state_tracker.get_key_state('e', key_state_tracker.JUST_PRESSED): player_draw_card()
+        elif key_state_tracker.get_key_state('e', key_state_tracker.JUST_PRESSED): 
+            begin_the_round()
+            if not(len(BOARD_DIV['dealer_hand_data']['cards']) == 2 and BOARD_DIV['dealer_hand_data']['cards'][1][0] == 'A'): 
+                BOARD_DIV['round_state'] = 2
+                BOARD_DIV['pad'].addstr(28, 1, '╔───────────────────╗ ╔───────────────────╗ ╔─────────────╗ ╔─────────────────╗ ╔──────────────────────────╗')
+                BOARD_DIV['pad'].addstr(29, 1, '│ [E] - DRAW A CARD │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [ENTER] - PASS TO DEALER │')
+                BOARD_DIV['pad'].addstr(30, 1, '╚───────────────────╝ ╚───────────────────╝ ╚─────────────╝ ╚─────────────────╝ ╚──────────────────────────╝')
+            else:
+                BOARD_DIV['round_state'] = 1
+                BOARD_DIV['pad'].addstr(28, 0, '                      ╔──────────────────────────╗ ╔──────────────────────────╗                      ')
+                BOARD_DIV['pad'].addstr(29, 0, '                      │ [X] - TAKE INSURANCE BET │ │ [C] - PEEK FOR BLACKJACK │                      ')
+                BOARD_DIV['pad'].addstr(30, 0, '                      ╚──────────────────────────╝ ╚──────────────────────────╝                      ')
         return
     if BOARD_DIV['round_state'] == 1:
+        if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
+        insurance_option = key_state_tracker.get_axis('x', 'c')
+        if insurance_option != 0:
+            if insurance_option == -1: BOARD_DIV['dealer_hand_data']['insurance_bet'] = True
+            BOARD_DIV['round_state'] = 2
+            resolve_insurance_bet()
+        move_vector = key_state_tracker.get_axis('w', 's')
+        if move_vector != 0:
+            BOARD_DIV['player_focused_hand_index'] = resources.clip_range(BOARD_DIV['player_focused_hand_index'] + move_vector, 0, len(BOARD_DIV['player_hands_data']) - 1)
+            rerender_player_hand()
+        return
+    if BOARD_DIV['round_state'] == 2:
+        # Player take their turn
         if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
         elif key_state_tracker.get_key_state('e', key_state_tracker.JUST_PRESSED): player_draw_card()
         elif key_state_tracker.get_key_state('d', key_state_tracker.JUST_PRESSED): double_down()
@@ -48,13 +73,16 @@ def update_board():
             BOARD_DIV['player_focused_hand_index'] = resources.clip_range(BOARD_DIV['player_focused_hand_index'] + move_vector, 0, len(BOARD_DIV['player_hands_data']) - 1)
             rerender_player_hand()
         return
-    if BOARD_DIV['round_state'] == 2:
+    if BOARD_DIV['round_state'] == 3:
+        # Dealer take their turn
         if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
         elif key_state_tracker.get_key_state('enter', key_state_tracker.JUST_PRESSED): dealer_draw_card(True)
         return
-    if BOARD_DIV['round_state'] == 3:
+    if BOARD_DIV['round_state'] == 4:
+        # Prepare for the next round
         if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
         elif key_state_tracker.get_key_state('enter', key_state_tracker.JUST_PRESSED): new_round()
+        return
 def update_deck():
     if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(BOARD_DIV)
 cursor_option_values = None
@@ -85,8 +113,7 @@ def update_setting():
 def new_game():
     global curent_focus_zone_index, DECK, PLAYER_HAND, DEALER_HAND, BOARD_DIV, DECK_DIV, SETTING_DIV
     BOARD_DIV, DECK_DIV, SETTING_DIV = build_div(BOARD_DIV), build_div(DECK_DIV), build_div(SETTING_DIV)
-    BOARD_DIV['game_result_stat'] = [0,0,0]
-    image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / '___card.txt', 101, 11, color_pair_obj=resources.get_color_pair_obj(3))
+    image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / '___card.txt', 100, 11, color_pair_obj=resources.get_color_pair_obj(3))
     for y in range(len(SUITS)):
         for x in range(len(RANKS)):
             image_drawer.draw_colored_image(DECK_DIV['pad'], resources.screen_data_path/'drawings'/'___card.txt', 4*x, 1+8*y, color_pair_obj=resources.get_color_pair_obj(2 if SUITS[y] in ('H', 'D') else 1))
@@ -94,11 +121,15 @@ def new_game():
             DECK_DIV['pad'].addstr(3+8*y, 1+4*x, SUIT_SYMBOL[y], resources.get_color_pair_obj(2 if SUITS[y] in ('H', 'D') else 1))
     BOARD_DIV['pad'].refresh(0, 0, BOARD_DIV['origin'][0], BOARD_DIV['origin'][1], BOARD_DIV['end'][0], BOARD_DIV['end'][1])
     new_round()
+    BOARD_DIV['game_result'] = [0.0,0,0.0]
+    BOARD_DIV['pad'].addstr(4, 100, f'{float(BOARD_DIV['game_result'][0])}W'.rjust(6, '0'), resources.get_color_pair_obj(3))
+    BOARD_DIV['pad'].addstr(4, 107, f'{BOARD_DIV['game_result'][1]}D'.rjust(4, '0'), resources.get_color_pair_obj(4))
+    BOARD_DIV['pad'].addstr(4, 112, f'{float(BOARD_DIV['game_result'][2])}L'.rjust(6, '0'), resources.get_color_pair_obj(2))
 def new_round():
     global curent_focus_zone_index, BOARD_DIV, DECK_DIV
     BOARD_DIV['deck'] = [f'{rank}{suit}' for suit in SUITS for rank in RANKS for _ in range(SETTING_DIV['cursor_option_values'][3])]
     BOARD_DIV['player_hands_data'] = [{'ace':0, 'point':0, 'cards':[], 'doubled_down': False, 'surrendered':False}]
-    BOARD_DIV['dealer_hand_data'] =   {'ace':0, 'point':0, 'cards':[], 'is_face_up':[]}
+    BOARD_DIV['dealer_hand_data'] =   {'ace':0, 'point':0, 'insurance_bet':False, 'peaked_blacjack':False, 'cards':[], 'is_face_up':[]}
     BOARD_DIV['player_focused_hand_index'] = 0
     BOARD_DIV['round_state'] = 0
     curent_focus_zone_index = BOARD_DIV['index']
@@ -107,19 +138,21 @@ def new_round():
     BOARD_DIV['pad'].addstr(27, 1, '                                                                                         ')
     DECK_DIV['card_counts'] = {f'{rank}{suit}': SETTING_DIV['cursor_option_values'][3] for suit in SUITS for rank in RANKS}
     [DECK_DIV['pad'].addstr(y, x, str(SETTING_DIV['cursor_option_values'][3])) for x in DECK_DIV['x_pos'] for y in DECK_DIV['y_pos']]
-    BOARD_DIV['pad'].addstr(10, 106, str(52 * SETTING_DIV['cursor_option_values'][3]).rjust(3, '0'))
-    BOARD_DIV['pad'].addstr(10, 102, str(len(BOARD_DIV['deck'])).rjust(3, '0'))
-    BOARD_DIV['pad'].addstr(28, 1, '╔───────────────────╗ ╔───────────────────╗ ╔─────────────╗ ╔─────────────────╗ ╔───────────────────────────────────╗')
-    BOARD_DIV['pad'].addstr(29, 1, '│ [E] - START ROUND │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [ENTER] - STOP AND PASS TO DEALER │')
-    BOARD_DIV['pad'].addstr(30, 1, '╚───────────────────╝ ╚───────────────────╝ ╚─────────────╝ ╚─────────────────╝ ╚───────────────────────────────────╝')
+    BOARD_DIV['pad'].addstr(10, 105, str(52 * SETTING_DIV['cursor_option_values'][3]).rjust(3, '0'))
+    BOARD_DIV['pad'].addstr(10, 101, str(len(BOARD_DIV['deck'])).rjust(3, '0'))
+    BOARD_DIV['pad'].addstr(28, 0, '                   ╔───────────────────────╗ ╔──────────────────────────╗                   ')
+    BOARD_DIV['pad'].addstr(29, 0, '                   │ [E] - START THE ROUND │ │ [DEL] - START A NEW GAME │                   ')
+    BOARD_DIV['pad'].addstr(30, 0, '                   ╚───────────────────────╝ ╚──────────────────────────╝                   ')
     BOARD_DIV['pad'].addstr(17, 2, '[----------------│----]                         ')
-    BOARD_DIV['pad'].addstr(3, 93, '                       ')
+    BOARD_DIV['pad'].addstr(5, 2,  '[----------------│----]                         ')
+    BOARD_DIV['pad'].addstr(3, 93, '                         ')
     BOARD_DIV['pad'].refresh(0, 0, BOARD_DIV['origin'][0], BOARD_DIV['origin'][1], BOARD_DIV['end'][0], BOARD_DIV['end'][1])
     
-    BOARD_DIV['game_result_stat'] = [BOARD_DIV['game_result_stat'][0] + result[0], BOARD_DIV['game_result_stat'][1] + result[1], BOARD_DIV['game_result_stat'][2] + result[2]]
-    BOARD_DIV['pad'].addstr(4, 100, f'{BOARD_DIV['game_result_stat'][0]}W'.rjust(4, '0'), resources.get_color_pair_obj(3))
-    BOARD_DIV['pad'].addstr(4, 105, f'{BOARD_DIV['game_result_stat'][1]}D'.rjust(4, '0'), resources.get_color_pair_obj(4))
-    BOARD_DIV['pad'].addstr(4, 110, f'{float(BOARD_DIV['game_result_stat'][2])}L'.rjust(6, '0'), resources.get_color_pair_obj(2))
+    BOARD_DIV['game_result'] = [BOARD_DIV['game_result'][0] + BOARD_DIV['round_result'][0], BOARD_DIV['game_result'][1] + BOARD_DIV['round_result'][1], BOARD_DIV['game_result'][2] + BOARD_DIV['round_result'][2]]
+    BOARD_DIV['pad'].addstr(4, 100, f'{float(BOARD_DIV['game_result'][0])}W'.rjust(6, '0'), resources.get_color_pair_obj(3))
+    BOARD_DIV['pad'].addstr(4, 107, f'{BOARD_DIV['game_result'][1]}D'.rjust(4, '0'), resources.get_color_pair_obj(4))
+    BOARD_DIV['pad'].addstr(4, 112, f'{float(BOARD_DIV['game_result'][2])}L'.rjust(6, '0'), resources.get_color_pair_obj(2))
+    BOARD_DIV['round_result'] = [0.0, 0, 0.0]
 def build_div(div):
     with open(resources.screen_data_path / div['src'], 'r', encoding='utf-8') as f:
         div['size'] = tuple(map(int, f.readline().split()))
@@ -143,7 +176,7 @@ def render_div(div):
 
 def draw_random_card(is_face_up=True):
     global BOARD_DIV
-    BOARD_DIV['pad'].addstr(10, 102, str(len(BOARD_DIV['deck']) - 1).rjust(3, '0'))
+    BOARD_DIV['pad'].addstr(10, 101, str(len(BOARD_DIV['deck']) - 1).rjust(3, '0'))
     card = BOARD_DIV['deck'].pop(randint(0, len(BOARD_DIV['deck']) - 1))
     if is_face_up:
         DECK_DIV['card_counts'][card] -= 1
@@ -151,24 +184,22 @@ def draw_random_card(is_face_up=True):
     return card
 def player_draw_card():
     global BOARD_DIV
+    BOARD_DIV['pad'].addstr(27, 1, '                                                                                                                      ')
     if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] == 21:
-        BOARD_DIV['pad'].addstr(27, 1, 'You already got the best possible hand, we are not letting you ruin it!                                                ')
+        BOARD_DIV['pad'].addstr(27, 1, 'You already got the best possible hand, we are not letting you ruin it!                                               ')
+        return
+    if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] > 21:
+        BOARD_DIV['pad'].addstr(27, 1, 'You already ')
+        BOARD_DIV['pad'].addstr(27, 13, 'busted', resources.get_color_pair_obj(2))
+        BOARD_DIV['pad'].addstr(27, 19, '. No need to draw more card :)')
+        return
+    if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['surrendered']:
+        BOARD_DIV['pad'].addstr(27, 1, 'You have surrendered this hand! Maybe don\'t give up so soon next time?                                               ')
         return
     if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['doubled_down']:
-        BOARD_DIV['pad'].addstr(27, 1, 'You have doubled down! No take back allowed!                                                                           ')
-        return
-    if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['doubled_down']:
-        BOARD_DIV['pad'].addstr(27, 1, 'You have surrendered this hand! Maybe don\'t give up so soon next time?                                                ')
+        BOARD_DIV['pad'].addstr(27, 1, 'You have doubled down, no more card will be drawn!                                                                    ')
         return
 
-
-    if BOARD_DIV['round_state'] == 0: 
-        BOARD_DIV['round_state'] = 1
-        dealer_draw_card(False)
-        dealer_draw_card(True)
-        player_draw_card()
-        BOARD_DIV['pad'].addstr(5, 26, f'{POINTS[resources.get_first_dupe_index(RANKS, BOARD_DIV['dealer_hand_data']['cards'][1][:-1])]}+??')
-        BOARD_DIV['pad'].addstr(29,9,'DRAW A CARD')
     card = draw_random_card()
     if card[0] == 'A': BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace'] += 1
     BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] += POINTS[resources.get_first_dupe_index(RANKS, card[:-1])]
@@ -179,9 +210,11 @@ def player_draw_card():
     rerender_player_hand()
 def dealer_draw_card(is_face_up):    
     global BOARD_DIV
+    BOARD_DIV['pad'].addstr(27, 1, '                                                                                                                      ')
     if BOARD_DIV['dealer_hand_data']['point'] > 17 or (BOARD_DIV['dealer_hand_data']['point'] == 17 and SETTING_DIV['cursor_option_values'][0] == 1): 
-        game_end()
+        round_end()
         return
+    
     card = draw_random_card(is_face_up)
     if card[0] == 'A': BOARD_DIV['dealer_hand_data']['ace'] += 1
     BOARD_DIV['dealer_hand_data']['point'] += POINTS[resources.get_first_dupe_index(RANKS, card[:-1])]
@@ -192,23 +225,29 @@ def dealer_draw_card(is_face_up):
             BOARD_DIV['dealer_hand_data']['point'] -= 10
             BOARD_DIV['dealer_hand_data']['ace'] -= 1
     if SETTING_DIV['cursor_option_values'][1] == 1 and BOARD_DIV['dealer_hand_data']['point'] == 21:
-        # Blackjack peaked
         pass
     rerender_dealer_hand()
     if BOARD_DIV['dealer_hand_data']['point'] > 21:
-        BOARD_DIV['pad'].addstr(27, 1, 'Dealer busted! All standing hands won.')
-        game_end()
+        BOARD_DIV['pad'].addstr(27, 1, 'Dealer busted! All standing hands won.                                                                                ')
+        round_end()
 
 def double_down():
     global BOARD_DIV
+    BOARD_DIV['pad'].addstr(27, 1, '                                                                                                                      ')
+    if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['doubled_down']:
+        BOARD_DIV['pad'].addstr(27, 1, 'You have doubled down!                                                                                                 ')
+        return
+    
     player_draw_card()
     BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['doubled_down'] = True
     rerender_player_hand()
 def split():
     global BOARD_DIV
+    BOARD_DIV['pad'].addstr(27, 1, '                                                                                                                      ')
     if not (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards']) == 2 and BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][0][0] == BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][1][0]): 
-        BOARD_DIV['pad'].addstr(28, 30, 'Your hand must have exactly 2 card of the same rank!')
+        BOARD_DIV['pad'].addstr(27, 1, 'Your hand must have exactly 2 card of the same rank!')
         return
+    
     card = BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'].pop()
     BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] = 11 if card[0] == 'A' else int(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point'] / 2)
     BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace'] = int(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace'] / 2)
@@ -217,10 +256,11 @@ def split():
     BOARD_DIV['pad'].addstr(25, 77, '[▼] Hand below')
     rerender_player_hand()
 def finish_turn():
+    BOARD_DIV['pad'].addstr(27, 1, '                                                                                                                      ')
     BOARD_DIV['dealer_hand_data']['is_face_up'][0] = True
-    BOARD_DIV['round_state'] = 2
+    BOARD_DIV['round_state'] = 3
     rerender_dealer_hand()
-    if SETTING_DIV['cursor_option_values'][2] == 0:
+    if SETTING_DIV['cursor_option_values'][2] == 1:
         BOARD_DIV['pad'].addstr(28, 1, '╔────────────────────────────────╗                                                                                   ')
         BOARD_DIV['pad'].addstr(29, 1, '│ [ENTER] -  DEALER DRAW A CARD  │                                                                                   ')
         BOARD_DIV['pad'].insstr(30, 1, '╚────────────────────────────────╝                                                                                   ')
@@ -231,7 +271,11 @@ def finish_turn():
     dealer_draw_card(True)
 def surrender():
     global BOARD_DIV
+    if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['doubled_down']: 
+        BOARD_DIV['pad'].addstr(27, 1, 'You have doubled down on this hand! You placed your trust on your hand and it has failed you >:D                      ')
+        return
     BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['surrendered'] = True
+    rerender_player_hand()
 
 def rerender_player_hand():
     global BOARD_DIV
@@ -241,7 +285,7 @@ def rerender_player_hand():
     BOARD_DIV['pad'].addstr(17, 77, '              ' if BOARD_DIV['player_focused_hand_index'] == 0 else '[▲] Hand above')
     for i in range(7): BOARD_DIV['pad'].addstr(BOARD_DIV['y_pos'][1] + i, 2, blank)
     for i in range(len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])):
-        image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][1], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i][1] in ('H', 'D') else 1))
+        image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][1], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i][-1] in ('H', 'D') else 1))
     
     ace_remain = BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace']
     bar = ''
@@ -251,53 +295,103 @@ def rerender_player_hand():
         else:
             string = SUIT_SYMBOL[resources.get_first_dupe_index(SUITS, card[-1])] * (11 if ace_remain > 0 else 1)
             ace_remain -= 1
-        BOARD_DIV['pad'].addstr(17, 3 + len(bar), string, resources.get_color_pair_obj(2 if card[1] in ('H', 'D') else 1))
+        BOARD_DIV['pad'].addstr(17, 3 + len(bar), string, resources.get_color_pair_obj(2 if card[-1] in ('H', 'D') else 1))
         bar += string
-    if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['doubled_down']:  BOARD_DIV['pad'].addstr(17, 3, bar, 0)
-    if len(bar) <= 21: BOARD_DIV['pad'].addstr(17, 3 + len(bar), '-' * (21 - len(bar)))
+    if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['doubled_down']:  BOARD_DIV['pad'].addstr(17, 3, bar, resources.get_color_pair_obj(4))
+    elif BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['surrendered']: BOARD_DIV['pad'].addstr(17, 3, bar)
+    if len(bar) <= 21: 
+        BOARD_DIV['pad'].addstr(17, 3 + len(bar), '-' * (21 - len(bar)))
+        if len(bar) < 17: BOARD_DIV['pad'].addstr(17, 19,'│')
+    if len(bar) > 21: BOARD_DIV['pad'].addstr(27, 1, 'HAND BUSTED!                                                                                                          ', resources.get_color_pair_obj(2))
+    BOARD_DIV['pad'].addstr(17, max(25, 2 + len(bar)), f' {BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point']}P')
 def rerender_dealer_hand():
     global BOARD_DIV
     blank = ' ' * 89
     for i in range(7): BOARD_DIV['pad'].addstr(BOARD_DIV['y_pos'][0] + i, 2, blank)
     for i in range(len(BOARD_DIV['dealer_hand_data']['cards'])):
         if BOARD_DIV['dealer_hand_data']['is_face_up'][i] == True: 
-            image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['dealer_hand_data']['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['dealer_hand_data']['cards'][i][1] in ('H', 'D') else 1))
+            image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['dealer_hand_data']['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['dealer_hand_data']['cards'][i][-1] in ('H', 'D') else 1))
         else: image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / '___card.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0], color_pair_obj=resources.get_color_pair_obj(3))
-result = [0,0,0]
-def game_end():
-    global BOARD_DIV, result
-    BOARD_DIV['round_state'] = 3
+    ace_remain = BOARD_DIV['dealer_hand_data']['ace']
+    hidden, bar = False, ''
     
+    for i in range(len(BOARD_DIV['dealer_hand_data']['cards'])):
+        if not BOARD_DIV['dealer_hand_data']['is_face_up'][i]: 
+            hidden = True
+            continue
+        if BOARD_DIV['dealer_hand_data']['cards'][i][0] != 'A': 
+            string = SUIT_SYMBOL[resources.get_first_dupe_index(SUITS, BOARD_DIV['dealer_hand_data']['cards'][i][-1])] * POINTS[resources.get_first_dupe_index(RANKS, BOARD_DIV['dealer_hand_data']['cards'][i][:-1])]
+        else:
+            string = SUIT_SYMBOL[resources.get_first_dupe_index(SUITS, BOARD_DIV['dealer_hand_data']['cards'][i][-1])] * (11 if ace_remain > 0 else 1)
+            ace_remain -= 1
+        BOARD_DIV['pad'].addstr(5, 3 + len(bar), string, resources.get_color_pair_obj(2 if BOARD_DIV['dealer_hand_data']['cards'][i][-1] in ('H', 'D') else 1))
+        bar += string
+    if len(bar) <= 21: 
+        BOARD_DIV['pad'].addstr(5, 3 + len(bar), ('?' if hidden else '-') * (21 - len(bar)))
+        if len(bar) < 17: BOARD_DIV['pad'].addstr(5, 19,'│')
+    if not hidden: BOARD_DIV['pad'].addstr(5, max(25, 2 + len(bar)), f' {BOARD_DIV['dealer_hand_data']['point']}P    ')
+    elif len(BOARD_DIV['dealer_hand_data']['cards']) > 1: BOARD_DIV['pad'].addstr(5, max(25, 2 + len(bar)), f' {POINTS[resources.get_first_dupe_index(RANKS, BOARD_DIV['dealer_hand_data']['cards'][1][:-1])]}+P')
+
+def begin_the_round():
+    global BOARD_DIV
+    dealer_draw_card(False)
+    dealer_draw_card(True)
+    player_draw_card()
+    player_draw_card()
+
+def round_end():
+    global BOARD_DIV
+    if BOARD_DIV['round_state'] >= 4: return
+    BOARD_DIV['round_state'] = 4
     BOARD_DIV['pad'].addstr(28, 1, '╔────────────────────────────────╗  DEALER:                                                                          ')
     BOARD_DIV['pad'].addstr(29, 1, '│ [ENTER] -      NEXT ROUND      │  PLAYER:                                                                          ')
     BOARD_DIV['pad'].insstr(30, 1, '╚────────────────────────────────╝                                                                                   ')
-    
     i = 0
-    result = [0, 0, 0]
     for y in BOARD_DIV['player_hand_ratio_coord']['y']:
         for x in BOARD_DIV['player_hand_ratio_coord']['x']:
+            print(BOARD_DIV['round_result'])
             string = f'[{i+1}] {BOARD_DIV['player_hands_data'][i]['point']} in {len(BOARD_DIV['player_hands_data'][i]['cards'])}'
             if BOARD_DIV['player_hands_data'][i]['surrendered']:
                 BOARD_DIV['pad'].addstr(y, x + 8 - len(string), string, resources.get_color_pair_obj(2))
                 i += 1
-                result[2] += .5
+                BOARD_DIV['round_result'][2] += .5
                 if i == len(BOARD_DIV['player_hands_data']): break
                 continue
             BOARD_DIV['pad'].addstr(y, x + 8 - len(string), string, resources.get_color_pair_obj(3 if (BOARD_DIV['dealer_hand_data']['point'] < BOARD_DIV['player_hands_data'][i]['point'] and BOARD_DIV['player_hands_data'][i]['point'] <= 21) or (BOARD_DIV['player_hands_data'][i]['point'] <= 21 and BOARD_DIV['dealer_hand_data']['point'] > 21) else 4 if (BOARD_DIV['dealer_hand_data']['point'] == BOARD_DIV['player_hands_data'][i]['point'] and BOARD_DIV['player_hands_data'][i]['point'] <= 21) else 2))
             
             if (BOARD_DIV['dealer_hand_data']['point'] < BOARD_DIV['player_hands_data'][i]['point'] and BOARD_DIV['player_hands_data'][i]['point'] <= 21) or (BOARD_DIV['player_hands_data'][i]['point'] <= 21 and BOARD_DIV['dealer_hand_data']['point'] > 21): 
-                result[0] += 2 if BOARD_DIV['player_hands_data'][i]['doubled_down'] else 1 # Win
+                BOARD_DIV['round_result'][0] += 2 if BOARD_DIV['player_hands_data'][i]['doubled_down'] else 1 # Win
             elif (BOARD_DIV['dealer_hand_data']['point'] == BOARD_DIV['player_hands_data'][i]['point'] and BOARD_DIV['player_hands_data'][i]['point'] <= 21): 
-                result[1] += 1
-            else: result[2] += 2 if BOARD_DIV['player_hands_data'][i]['doubled_down'] else 1 # Lost
+                BOARD_DIV['round_result'][1] += 1
+            else: BOARD_DIV['round_result'][2] += 2 if BOARD_DIV['player_hands_data'][i]['doubled_down'] else 1 # Lost
             i += 1
             if i == len(BOARD_DIV['player_hands_data']): break
         if i == len(BOARD_DIV['player_hands_data']): break
     string = f'{BOARD_DIV['dealer_hand_data']['point']} in {len(BOARD_DIV['dealer_hand_data']['cards'])}'
-    BOARD_DIV['pad'].addstr(28, 48 + 8 - len(string), string, resources.get_color_pair_obj(2 if result[0] == len(BOARD_DIV['player_hands_data']) else 3 if result[2] == len(BOARD_DIV['player_hands_data']) else 4))
-    string = f'+{result[0]}'
-    BOARD_DIV['pad'].addstr(3, 103 - len(string), string, resources.get_color_pair_obj(3))
-    string = f'+{result[1]}'
-    BOARD_DIV['pad'].addstr(3, 108 - len(string), string, resources.get_color_pair_obj(4))
-    string = f'+{float(result[2])}'
-    BOARD_DIV['pad'].addstr(3, 115 - len(string), string, resources.get_color_pair_obj(2))
+    BOARD_DIV['pad'].addstr(28, 48 + 8 - len(string), string, resources.get_color_pair_obj(2 if BOARD_DIV['round_result'][0] == len(BOARD_DIV['player_hands_data']) else 3 if BOARD_DIV['round_result'][2] == len(BOARD_DIV['player_hands_data']) else 4))
+    print('!', BOARD_DIV['round_result'])
+    BOARD_DIV['pad'].addstr(3, 99, f'+{float(BOARD_DIV['round_result'][0])}'.rjust(6, ' '), resources.get_color_pair_obj(3))
+    BOARD_DIV['pad'].addstr(3, 106, f'+{BOARD_DIV['round_result'][1]}'.rjust(4, ' '), resources.get_color_pair_obj(4))
+    BOARD_DIV['pad'].addstr(3, 111, f'+{float(BOARD_DIV['round_result'][2])}'.rjust(6, ' '), resources.get_color_pair_obj(2))
+def resolve_insurance_bet():
+    global BOARD_DIV
+    BOARD_DIV['pad'].addstr(27, 1, 'Dealer peaked for blackjack!                                                                                         ')
+    if BOARD_DIV['dealer_hand_data']['point'] == 21:
+        BOARD_DIV['dealer_hand_data']['is_face_up'][0] = True
+        rerender_dealer_hand()
+        BOARD_DIV['pad'].addstr(27, 30, 'Blackjack found and hand is revealed.                                                   ')
+        if BOARD_DIV['dealer_hand_data']['insurance_bet']: 
+            BOARD_DIV['round_result'][0] += .5
+            string = f'+{BOARD_DIV['round_result'][0]}'
+            BOARD_DIV['pad'].addstr(3, 105 - len(string), string, resources.get_color_pair_obj(3))
+            BOARD_DIV['pad'].addstr(27, 68, 'You won the insurance bet!                       ', resources.get_color_pair_obj(3))
+    else:
+        BOARD_DIV['pad'].addstr(27, 30, 'None found.                                                         ')
+        if BOARD_DIV['dealer_hand_data']['insurance_bet']: 
+            BOARD_DIV['round_result'][2] += .5
+            string = f'+{BOARD_DIV['round_result'][2]}'
+            BOARD_DIV['pad'].addstr(3, 117 - len(string), string, resources.get_color_pair_obj(2))
+            BOARD_DIV['pad'].addstr(27, 42, 'You lost the insurance bet!', resources.get_color_pair_obj(2))
+    BOARD_DIV['pad'].addstr(28, 1, '╔───────────────────╗ ╔───────────────────╗ ╔─────────────╗ ╔─────────────────╗ ╔──────────────────────────╗')
+    BOARD_DIV['pad'].addstr(29, 1, '│ [E] - DRAW A CARD │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [ENTER] - PASS TO DEALER │')
+    BOARD_DIV['pad'].addstr(30, 1, '╚───────────────────╝ ╚───────────────────╝ ╚─────────────╝ ╚─────────────────╝ ╚──────────────────────────╝')
