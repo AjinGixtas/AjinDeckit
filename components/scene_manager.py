@@ -1,4 +1,4 @@
-from pages import menu, game_menu, blackjack
+from pages import menu, game_menu, blackjack, craps
 from components import resources
 current_index = -1
 current_page = menu
@@ -14,6 +14,7 @@ def change_page(index):
     if current_index == MENU_INDEX: current_page = menu
     elif current_index == GAME_MENU_INDEX: current_page = game_menu
     elif current_index == BLACKJACK_INDEX: current_page = blackjack
+    elif current_index == CRAPS_INDEX: current_page = craps
     draw_screen_bone(current_page.KEY_MAP_DISPLAY_TABLE)
     current_page._start()
 

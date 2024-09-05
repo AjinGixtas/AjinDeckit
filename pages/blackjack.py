@@ -6,7 +6,7 @@ KEY_MAP_DISPLAY_TABLE = [0,0,0,0,0,0,1,1,1]
 origin_x, origin_y, rows, columns = 0, 0, 0, 0
 BOARD_DIV   = { 'index':0, 'src':'blackjack_board.txt', 'deck':[], 'player_hands_data':[{'ace':0, 'point':0, 'cards':[], 'doubled_down':False, 'surrendered':False }], 'player_focused_hand_index':0, 'dealer_hand_data':{'ace':0, 'point':0, 'insurance_bet':False, 'cards':[], 'is_face_up':[]}, 'y_pos':(6,18), 'game_result':[0,0,0], 'round_result':[0,0,0],  'round_state':0, 'player_hand_ratio_coord': {'x':(48,62,76), 'y':(29,30,31)}}
 DECK_DIV    = { 'index':1, 'src':'blackjack_deck.txt', 'card_counts':{}, 'x_pos':(2,6,10,14,18,22,26,30,34,38,42,46,52), 'y_pos':(0,8,16,24) }
-SETTING_DIV = { 'index':2, 'src':'blackjack_setting.txt', 'cursor_option_values':[0,0,0,1], 'cursor_option_ranges':((0,1),(0,1),(0,1),(1,9)), 'cursor_display_values':(('-HIT-','STAND'),('← _ →','← * →'),('← _ →','← * →'),2),'cursor_index':0}
+SETTING_DIV = { 'index':2, 'src':'blackjack_setting.txt', 'cursor_option_values':[0,1,0,1], 'cursor_option_ranges':((0,1),(0,1),(0,1),(1,9)), 'cursor_display_values':(('-HIT-','STAND'),('← _ →','← * →'),('← _ →','← * →'),2),'cursor_index':0}
 curent_focus_zone_index = BOARD_DIV['index']
 SUIT_SYMBOL, SUITS, RANKS, POINTS = ('♣', '♠', '♦', '♥'), ('C','S','D','H'), ('2','3','4','5','6','7','8','9','10','J','Q','K','A'), ( 2,  3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 10, 10, 10, 11)
 def _start():
@@ -37,7 +37,7 @@ def update_board():
         if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
         elif key_state_tracker.get_key_state('e', key_state_tracker.JUST_PRESSED): 
             begin_the_round()
-            if not(len(BOARD_DIV['dealer_hand_data']['cards']) == 2 and BOARD_DIV['dealer_hand_data']['cards'][1][0] == 'A'): 
+            if not(len(BOARD_DIV['dealer_hand_data']['cards']) == 2 and BOARD_DIV['dealer_hand_data']['cards'][1][0] == 'A') or SETTING_DIV['cursor_option_values'][1]: 
                 BOARD_DIV['round_state'] = 2
                 BOARD_DIV['pad'].addstr(28, 1, '╔───────────────────╗ ╔───────────────────╗ ╔─────────────╗ ╔─────────────────╗ ╔──────────────────────────╗')
                 BOARD_DIV['pad'].addstr(29, 1, '│ [E] - DRAW A CARD │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [ENTER] - PASS TO DEALER │')
@@ -113,10 +113,10 @@ def update_setting():
 def new_game():
     global curent_focus_zone_index, DECK, PLAYER_HAND, DEALER_HAND, BOARD_DIV, DECK_DIV, SETTING_DIV
     BOARD_DIV, DECK_DIV, SETTING_DIV = build_div(BOARD_DIV), build_div(DECK_DIV), build_div(SETTING_DIV)
-    image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / '___card.txt', 100, 11, color_pair_obj=resources.get_color_pair_obj(3))
+    image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / 'cards' / '___card.txt', 100, 11, color_pair_obj=resources.get_color_pair_obj(3))
     for y in range(len(SUITS)):
         for x in range(len(RANKS)):
-            image_drawer.draw_colored_image(DECK_DIV['pad'], resources.screen_data_path/'drawings'/'___card.txt', 4*x, 1+8*y, color_pair_obj=resources.get_color_pair_obj(2 if SUITS[y] in ('H', 'D') else 1))
+            image_drawer.draw_colored_image(DECK_DIV['pad'], resources.screen_data_path/'drawings'/ 'cards' / '___card.txt', 4*x, 1+8*y, color_pair_obj=resources.get_color_pair_obj(2 if SUITS[y] in ('H', 'D') else 1))
             DECK_DIV['pad'].addstr(2+8*y, 1+4*x, RANKS[x], resources.get_color_pair_obj(2 if SUITS[y] in ('H', 'D') else 1))
             DECK_DIV['pad'].addstr(3+8*y, 1+4*x, SUIT_SYMBOL[y], resources.get_color_pair_obj(2 if SUITS[y] in ('H', 'D') else 1))
     BOARD_DIV['pad'].refresh(0, 0, BOARD_DIV['origin'][0], BOARD_DIV['origin'][1], BOARD_DIV['end'][0], BOARD_DIV['end'][1])
@@ -285,7 +285,7 @@ def rerender_player_hand():
     BOARD_DIV['pad'].addstr(17, 77, '              ' if BOARD_DIV['player_focused_hand_index'] == 0 else '[▲] Hand above')
     for i in range(7): BOARD_DIV['pad'].addstr(BOARD_DIV['y_pos'][1] + i, 2, blank)
     for i in range(len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])):
-        image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][1], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i][-1] in ('H', 'D') else 1))
+        image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / 'cards' / f'{BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][1], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i][-1] in ('H', 'D') else 1))
     
     ace_remain = BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace']
     bar = ''
@@ -310,8 +310,8 @@ def rerender_dealer_hand():
     for i in range(7): BOARD_DIV['pad'].addstr(BOARD_DIV['y_pos'][0] + i, 2, blank)
     for i in range(len(BOARD_DIV['dealer_hand_data']['cards'])):
         if BOARD_DIV['dealer_hand_data']['is_face_up'][i] == True: 
-            image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / f'{BOARD_DIV['dealer_hand_data']['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['dealer_hand_data']['cards'][i][-1] in ('H', 'D') else 1))
-        else: image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / '___card.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0], color_pair_obj=resources.get_color_pair_obj(3))
+            image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / 'cards' / f'{BOARD_DIV['dealer_hand_data']['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0], color_pair_obj=resources.get_color_pair_obj(2 if BOARD_DIV['dealer_hand_data']['cards'][i][-1] in ('H', 'D') else 1))
+        else: image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / 'cards' / '___card.txt', int(2 + 80.00 / (len(BOARD_DIV['dealer_hand_data']['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][0], color_pair_obj=resources.get_color_pair_obj(3))
     ace_remain = BOARD_DIV['dealer_hand_data']['ace']
     hidden, bar = False, ''
     
@@ -349,7 +349,6 @@ def round_end():
     i = 0
     for y in BOARD_DIV['player_hand_ratio_coord']['y']:
         for x in BOARD_DIV['player_hand_ratio_coord']['x']:
-            print(BOARD_DIV['round_result'])
             string = f'[{i+1}] {BOARD_DIV['player_hands_data'][i]['point']} in {len(BOARD_DIV['player_hands_data'][i]['cards'])}'
             if BOARD_DIV['player_hands_data'][i]['surrendered']:
                 BOARD_DIV['pad'].addstr(y, x + 8 - len(string), string, resources.get_color_pair_obj(2))
@@ -369,7 +368,6 @@ def round_end():
         if i == len(BOARD_DIV['player_hands_data']): break
     string = f'{BOARD_DIV['dealer_hand_data']['point']} in {len(BOARD_DIV['dealer_hand_data']['cards'])}'
     BOARD_DIV['pad'].addstr(28, 48 + 8 - len(string), string, resources.get_color_pair_obj(2 if BOARD_DIV['round_result'][0] == len(BOARD_DIV['player_hands_data']) else 3 if BOARD_DIV['round_result'][2] == len(BOARD_DIV['player_hands_data']) else 4))
-    print('!', BOARD_DIV['round_result'])
     BOARD_DIV['pad'].addstr(3, 99, f'+{float(BOARD_DIV['round_result'][0])}'.rjust(6, ' '), resources.get_color_pair_obj(3))
     BOARD_DIV['pad'].addstr(3, 106, f'+{BOARD_DIV['round_result'][1]}'.rjust(4, ' '), resources.get_color_pair_obj(4))
     BOARD_DIV['pad'].addstr(3, 111, f'+{float(BOARD_DIV['round_result'][2])}'.rjust(6, ' '), resources.get_color_pair_obj(2))
