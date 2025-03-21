@@ -33,7 +33,7 @@ def _main(stdscr):
             _end()
             return
         key_state_tracker._update()
-        sleep(.04166)
+        sleep(.05)
 def _end():
     from sys import exit
     resources._end()

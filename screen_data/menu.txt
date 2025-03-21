@@ -1,6 +1,6 @@
 8 78
                                - AJIN BETZIX -
-An educational tool intend to stop you from gambling. Created by AjinGixtas
+       An game package for the 52 cards deck. Created by AjinGixtas
                                                                               
                          [ ] - Play                                             
 					                                                          
