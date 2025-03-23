@@ -1,12 +1,16 @@
 from components import resources, image_drawer, scene_manager, key_state_tracker
 from components.key_state_tracker import get_key_state, get_axis
 from curses import newpad, color_pair
-from random import randint
+from random import randint, shuffle
 KEY_MAP_DISPLAY_TABLE = [0,0,0,0,0,0,1,1,1]
-origin_x, origin_y, rows, columns = 0, 0, 0, 0
-BOARD_DIV   = { 'index':0, 'src':'blackjack_board.txt', 'deck':[], 'player_hands_data':[{'ace':0, 'point':0, 'cards':[], 'doubled_down':False, 'surrendered':False }], 'player_focused_hand_index':0, 'dealer_hand_data':{'ace':0, 'point':0, 'insurance_bet':False, 'cards':[], 'is_face_up':[]}, 'y_pos':(6,18), 'game_result':[0,0,0], 'round_result':[0,0,0],  'round_state':0, 'player_hand_ratio_coord': {'x':(48,62,76), 'y':(29,30,31)}}
+# origin_x, origin_y, rows, columns = 0, 0, 0, 0
+BOARD_DIV   = { 'index':0, 'src':'blackjack_board.txt', 'deck_progress_index':0, 'deck':[], 
+    'player_hands_data':[{'ace':0, 'point':0, 'cards':[], 'doubled_down':False, 'surrendered':False }], 
+    'player_focused_hand_index':0, 
+    'dealer_hand_data':{'ace':0, 'point':0, 'insurance_bet':False, 'cards':[], 'is_face_up':[]}, 
+    'y_pos':(6,18), 'game_result':[0,0,0], 'round_result':[0,0,0],  'round_state':0, 'player_hand_ratio_coord': {'x':(48,62,76), 'y':(29,30,31)}}
 DECK_DIV    = { 'index':1, 'src':'blackjack_deck.txt', 'card_counts':{}, 'x_pos':(2,6,10,14,18,22,26,30,34,38,42,46,52), 'y_pos':(0,8,16,24) }
-SETTING_DIV = { 'index':2, 'src':'blackjack_setting.txt', 'cursor_option_values':[0,1,0,1,0,1], 'cursor_option_ranges':((0,1),(0,1),(0,1),(0,1),(0,1),(1,9)), 'cursor_display_values':(('-HIT-','STAND'),('← _ →','← * →'),('← _ →','← * →'),('← _ →','← * →'),('← _ →','← * →'),2),'cursor_index':0}
+SETTING_DIV = { 'index':2, 'src':'blackjack_setting.txt', 'cursor_option_values':[0,1,0,1,1,1], 'cursor_option_ranges':((0,1),(0,1),(0,1),(0,1),(0,1),(1,9)), 'cursor_display_values':(('-HIT-','STAND'),('← _ →','← * →'),('← _ →','← * →'),('← _ →','← * →'),('← _ →','← * →'),2),'cursor_index':0}
 curent_focus_zone_index = BOARD_DIV['index']
 SUIT_SYMBOL, SUITS, RANKS, POINTS = ('♣', '♠', '♦', '♥'), ('C','S','D','H'), ('2','3','4','5','6','7','8','9','10','J','Q','K','A'), ( 2,  3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 10, 10, 10, 11)
 def _start():
@@ -37,10 +41,10 @@ def update_board():
         if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
         elif key_state_tracker.get_key_state('e', key_state_tracker.JUST_PRESSED): 
             begin_the_round()
-            if not(len(BOARD_DIV['dealer_hand_data']['cards']) == 2 and BOARD_DIV['dealer_hand_data']['cards'][1][0] == 'A') or SETTING_DIV['cursor_option_values'][1]: 
+            if not(len(BOARD_DIV['dealer_hand_data']['cards']) == 2 and BOARD_DIV['dealer_hand_data']['cards'][1][0] == 'A' and SETTING_DIV['cursor_option_values'][1]): 
                 BOARD_DIV['round_state'] = 2
                 BOARD_DIV['pad'].addstr(28, 1, '╔───────────────────╗ ╔───────────────────╗ ╔─────────────╗ ╔─────────────────╗ ╔──────────────────────────╗')
-                BOARD_DIV['pad'].addstr(29, 1, '│ [E] - DRAW A CARD │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [ENTER] - PASS TO DEALER │')
+                BOARD_DIV['pad'].addstr(29, 1, '│ [E] - DRAW A CARD │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [SPACE] - PASS TO DEALER │')
                 BOARD_DIV['pad'].addstr(30, 1, '╚───────────────────╝ ╚───────────────────╝ ╚─────────────╝ ╚─────────────────╝ ╚──────────────────────────╝')
             else:
                 BOARD_DIV['round_state'] = 1
@@ -67,7 +71,7 @@ def update_board():
         elif key_state_tracker.get_key_state('d', key_state_tracker.JUST_PRESSED): double_down()
         elif key_state_tracker.get_key_state('f', key_state_tracker.JUST_PRESSED): split()
         elif key_state_tracker.get_key_state('r', key_state_tracker.JUST_PRESSED): surrender()
-        elif key_state_tracker.get_key_state('enter', key_state_tracker.JUST_PRESSED): finish_turn()
+        elif key_state_tracker.get_key_state('space', key_state_tracker.JUST_PRESSED): finish_turn()
         move_vector = key_state_tracker.get_axis('w', 's')
         if move_vector != 0:
             BOARD_DIV['player_focused_hand_index'] = resources.clip_range(BOARD_DIV['player_focused_hand_index'] + move_vector, 0, len(BOARD_DIV['player_hands_data']) - 1)
@@ -76,12 +80,12 @@ def update_board():
     if BOARD_DIV['round_state'] == 3:
         # Dealer take their turn
         if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
-        elif key_state_tracker.get_key_state('enter', key_state_tracker.JUST_PRESSED): dealer_draw_card(True)
+        elif key_state_tracker.get_key_state('space', key_state_tracker.JUST_PRESSED): dealer_draw_card(True)
         return
     if BOARD_DIV['round_state'] == 4:
         # Prepare for the next round
         if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(DECK_DIV)
-        elif key_state_tracker.get_key_state('enter', key_state_tracker.JUST_PRESSED): new_round()
+        elif key_state_tracker.get_key_state('space', key_state_tracker.JUST_PRESSED): new_round()
         return
 def update_deck():
     if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(BOARD_DIV)
@@ -128,6 +132,8 @@ def new_game():
 def new_round():
     global curent_focus_zone_index, BOARD_DIV, DECK_DIV
     BOARD_DIV['deck'] = [f'{rank}{suit}' for suit in SUITS for rank in RANKS for _ in range(SETTING_DIV['cursor_option_values'][5])]
+    shuffle(BOARD_DIV['deck'])
+    BOARD_DIV['deck_progress_index'] = 0
     BOARD_DIV['player_hands_data'] = [{'ace':0, 'point':0, 'cards':[], 'doubled_down': False, 'surrendered':False}]
     BOARD_DIV['dealer_hand_data'] =   {'ace':0, 'point':0, 'insurance_bet':False, 'peaked_blacjack':False, 'cards':[], 'is_face_up':[]}
     BOARD_DIV['player_focused_hand_index'] = 0
@@ -176,8 +182,9 @@ def render_div(div):
 
 def draw_random_card(is_face_up=True):
     global BOARD_DIV
-    BOARD_DIV['pad'].addstr(10, 101, str(len(BOARD_DIV['deck']) - 1).rjust(3, '0'))
-    card = BOARD_DIV['deck'].pop(randint(0, len(BOARD_DIV['deck']) - 1))
+    card = BOARD_DIV['deck'][BOARD_DIV['deck_progress_index']]
+    BOARD_DIV['deck_progress_index'] += 1
+    BOARD_DIV['pad'].addstr(10, 101, str(len(BOARD_DIV['deck']) - BOARD_DIV['deck_progress_index']).rjust(3, '0'))
     if is_face_up:
         DECK_DIV['card_counts'][card] -= 1
         DECK_DIV['pad'].addstr(DECK_DIV['y_pos'][resources.get_first_dupe_index(SUITS, card[-1])], DECK_DIV['x_pos'][resources.get_first_dupe_index(RANKS, card[:-1])], str(DECK_DIV['card_counts'][card]))
@@ -274,7 +281,7 @@ def finish_turn():
     rerender_dealer_hand()
     if SETTING_DIV['cursor_option_values'][2] == 1:
         BOARD_DIV['pad'].addstr(28, 1, '╔────────────────────────────────╗                                                                                   ')
-        BOARD_DIV['pad'].addstr(29, 1, '│ [ENTER] -  DEALER DRAW A CARD  │                                                                                   ')
+        BOARD_DIV['pad'].addstr(29, 1, '│ [SPACE] -  DEALER DRAW A CARD  │                                                                                   ')
         BOARD_DIV['pad'].insstr(30, 1, '╚────────────────────────────────╝                                                                                   ')
         return
     while BOARD_DIV['dealer_hand_data']['point'] < 17: 
@@ -355,7 +362,7 @@ def round_end():
     if BOARD_DIV['round_state'] >= 4: return
     BOARD_DIV['round_state'] = 4
     BOARD_DIV['pad'].addstr(28, 1, '╔────────────────────────────────╗  DEALER:                                                                          ')
-    BOARD_DIV['pad'].addstr(29, 1, '│ [ENTER] -      NEXT ROUND      │  PLAYER:                                                                          ')
+    BOARD_DIV['pad'].addstr(29, 1, '│ [SPACE] -      NEXT ROUND      │  PLAYER:                                                                          ')
     BOARD_DIV['pad'].insstr(30, 1, '╚────────────────────────────────╝                                                                                   ')
     i = 0
     for y in BOARD_DIV['player_hand_ratio_coord']['y']:
@@ -392,15 +399,15 @@ def resolve_insurance_bet():
         if BOARD_DIV['dealer_hand_data']['insurance_bet']: 
             BOARD_DIV['round_result'][0] += .5
             string = f'+{BOARD_DIV['round_result'][0]}'
-            BOARD_DIV['pad'].addstr(3, 105 - len(string), string, resources.get_color_pair_obj(3))
-            BOARD_DIV['pad'].addstr(27, 68, 'You won the insurance bet!                       ', resources.get_color_pair_obj(3))
+            BOARD_DIV['pad'].addstr(3, 105 - len(string), string, resources.get_color_pair_obj(5))
+            BOARD_DIV['pad'].addstr(27, 68, 'You won the insurance bet!                       ', resources.get_color_pair_obj(6))
     else:
         BOARD_DIV['pad'].addstr(27, 30, 'None found.                                                         ')
         if BOARD_DIV['dealer_hand_data']['insurance_bet']: 
             BOARD_DIV['round_result'][2] += .5
             string = f'+{BOARD_DIV['round_result'][2]}'
-            BOARD_DIV['pad'].addstr(3, 117 - len(string), string, resources.get_color_pair_obj(2))
-            BOARD_DIV['pad'].addstr(27, 42, 'You lost the insurance bet!', resources.get_color_pair_obj(2))
+            BOARD_DIV['pad'].addstr(3, 117 - len(string), string, resources.get_color_pair_obj(4))
+            BOARD_DIV['pad'].addstr(27, 42, 'You lost the insurance bet!', resources.get_color_pair_obj(4))
     BOARD_DIV['pad'].addstr(28, 1, '╔───────────────────╗ ╔───────────────────╗ ╔─────────────╗ ╔─────────────────╗ ╔──────────────────────────╗')
-    BOARD_DIV['pad'].addstr(29, 1, '│ [E] - DRAW A CARD │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [ENTER] - PASS TO DEALER │')
+    BOARD_DIV['pad'].addstr(29, 1, '│ [E] - DRAW A CARD │ │ [D] - DOUBLE DOWN │ │ [F] - SPLIT │ │ [R] - SURRENDER │ │ [SPACE] - PASS TO DEALER │')
     BOARD_DIV['pad'].addstr(30, 1, '╚───────────────────╝ ╚───────────────────╝ ╚─────────────╝ ╚─────────────────╝ ╚──────────────────────────╝')

@@ -39,6 +39,7 @@ def draw_screen_bone(key_map_display_table):
         cursor_y = 1
         for i in range(y):
             key_info = f.readline().rstrip()
+            if len(key_map_display_table) <= i: continue
             if not key_map_display_table[i]: continue
             pad.addstr(cursor_y, cursor_x, key_info)
             cursor_x += padding

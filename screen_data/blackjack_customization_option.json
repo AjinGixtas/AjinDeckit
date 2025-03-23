@@ -1,55 +1,20 @@
 {
-  "doubleDown": {
-    "type": "boolean",
-    "enabled": true,
-    "title": "Double Down",
-    "description": [ "Players can double their bet and draw exactly one additional card." ]
-  },
-  "splitOptions": {
-    "type": "boolean",
-    "enabled": true,
-    "title": "Allow for Split",
-    "description": [ "If the player’s first two cards are of the same value, they can split them into two separate hands, each with its own bet." ], 
-    "options": {
-      "resplit": {
-        "type": "boolean",
-        "enabled": true,
-        "title": "Allow for Resplit",
-        "description": [ "If the player draws another pair after splitting, they can split again." ]
-      },
-      "doubleDownAfterSplit": {
-        "type": "boolean",
-        "enabled": true,
-        "title": "Allow for Double Down After Split",
-        "description": [ "Players can double down on either or both of the hands created by splitting." ]
-      }
-    }
-  },
-  "surrender": {
-    "type": "boolean",
-    "enabled": true,
-    "title": "Allow for Surrender",
-    "description": [ "Players can forfeit half of their original bet and end their round to move on to the next hand." ]
-  },
-  "dealerBehaviorOnSoft17": {
-    "type": "switch",
-    "enabled": true,
-    "options": {
-      "stand": {
-        "description": [ "The dealer must stop drawing cards if they have a hand totaling 17 that includes an Ace counted as 11 (a 'soft' 17)." ]
-      },
-      "hit": {
-        "description": [ "The dealer must draw another card if they have a hand totaling 17 that includes an Ace counted as 11 (a 'soft' 17)." ]
-      }
-    }
-  },
-  "dealerPeeksForBlackjack": {
-    "type": "boolean",
-    "enabled": false,
-    "title": "Allow Dealer to Peek for Blackjack",
-    "description": [
-      "When the dealer’s upcard is an Ace or a 10-value card, the dealer checks their hole card to see if they have a Blackjack. This rule helps streamline the process and save time.",
-      "Note: This setting is disabled by default to make the game feel more 'fair.' Enabling or disabling this option does not affect the game's overall outcome; it is only intended to clarify how the game handles potential Blackjacks and might help avoid confusion for players unfamiliar with how the computer’s RNG works."
-    ]
-  }
-}
+  "index": 0, 
+  "src": "solitaire_board.txt", 
+  "draw_amount": 1, 
+  "stock_pile": ["AD", "2C", "AS", "4S", "6C", "10H", "2D", "4H", "6S", "JC", "8H", "3C", "8D", "5C", "AC", "10D", "8S", "7D", "8C", "3H", "7S", "2H", "JS", "2S"], 
+  "waste_pile": [], 
+  "foundation_piles": [[], [], [], []], 
+  "facedown_card_amounts": [0, 1, 2, 3, 4, 5, 6], 
+  "tableau_piles": [
+    ["9H"], 
+    ["9S", "QS", "JH"], 
+    ["5D", "QH"], 
+    ["10S", "QC", "3D", "JD"], 
+    ["KH", "6D", "KS", "AH", "4D"], 
+    ["3S", "5H", "6H", "KD", "9C", "7C"], 
+    ["5S", "7H", "10C", "9D", "QD", "4C", "KC"]
+  ], 
+  "focused_index": [0, 2], 
+  "pad": "<_curses.window object at 0x0000010D7A5FFF90>", 
+  "size": [27, 85], "origin": [26, 114], "end": [53, 199], "focused_foundation_pile_index": -1, "focused_tableau_pile_index": -1}

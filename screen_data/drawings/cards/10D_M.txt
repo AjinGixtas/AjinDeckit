@@ -1,0 +1,9 @@
+7 9	
+╭───────╮
+│10    ♦│
+│       │
+│       │
+│       │
+│       │
+╰───────╯
+Created by "AjinGixtas" (https://github.com/AjinGixtas)
