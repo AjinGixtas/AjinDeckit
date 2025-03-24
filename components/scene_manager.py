@@ -29,7 +29,7 @@ def draw_screen_bone(key_map_display_table):
     resources.stdscr.addstr(0, 0, '┌' + '─' * (columns - 2) + '┐')
     for i in range(rows - 3): resources.stdscr.addstr(i + 1, 0, '│' + ' ' * (columns - 2) + '│')
     resources.stdscr.refresh()
-    with open(resources.screen_data_path / 'key_table.txt', 'r') as f:
+    with open(resources.screen_data_path / 'key_table' / f'key_table_{key_map_display_table[0]}.txt', 'r') as f:
         input = f.readline()
         y, padding = map(int, input.split())
         pad = newpad(12, columns)
@@ -39,8 +39,6 @@ def draw_screen_bone(key_map_display_table):
         cursor_y = 1
         for i in range(y):
             key_info = f.readline().rstrip()
-            if len(key_map_display_table) <= i: continue
-            if not key_map_display_table[i]: continue
             pad.addstr(cursor_y, cursor_x, key_info)
             cursor_x += padding
             if cursor_x + padding >= columns and i!=y-1: 

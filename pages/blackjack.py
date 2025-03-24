@@ -2,7 +2,7 @@ from components import resources, image_drawer, scene_manager, key_state_tracker
 from components.key_state_tracker import get_key_state, get_axis
 from curses import newpad, color_pair
 from random import randint, shuffle
-KEY_MAP_DISPLAY_TABLE = [0,0,0,0,0,0,1,1,1]
+KEY_MAP_DISPLAY_TABLE = ['blackjack']
 # origin_x, origin_y, rows, columns = 0, 0, 0, 0
 BOARD_DIV   = { 'index':0, 'src':'blackjack_board.txt', 'deck_progress_index':0, 'deck':[], 
     'player_hands_data':[{'ace':0, 'point':0, 'cards':[], 'doubled_down':False, 'surrendered':False }], 

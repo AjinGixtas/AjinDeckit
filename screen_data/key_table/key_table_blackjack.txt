@@ -1,0 +1,4 @@
+3 48
+[Q] - Return to parent page
+[Ctrl] + [Q] - Quit application
+[Delete] - Game settings

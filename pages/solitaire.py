@@ -4,7 +4,7 @@ from components.key_state_tracker import get_key_state, get_axis
 from curses import newpad, color_pair
 from random import randint, shuffle
 SUIT_SYMBOL, SUITS, RANKS, POINTS = ('♥','♦','♠','♣'), ('H','D','S','C'), ('A','2','3','4','5','6','7','8','9','10','J','Q','K'), (1,2,3,4,5,6,7,8,9,10,11,12,13)
-KEY_MAP_DISPLAY_TABLE=[0,0,0,0,1,1,1,1,1,1,1]
+KEY_MAP_DISPLAY_TABLE=['solitaire']
 BOARD_DIV = { 
     'index':0, 'src':'solitaire_board.txt',
     'stock_pile':[], 'waste_pile':[],
@@ -34,7 +34,7 @@ def _update():
     for i in range(len(FOUNDATION_KEYBIND)):
         if key_state_tracker.get_key_state('ctrl', key_state_tracker.PRESSED) and key_state_tracker.get_key_state(FOUNDATION_KEYBIND[i], key_state_tracker.JUST_PRESSED):
             BOARD_DIV['pad'].addstr(0, 0, str(pile_selection_action_resolver(['foundation_piles', i])))
-            rerender_board()x
+            rerender_board()
             break
     for i in range(SETTING_DIV['draw_amount']):
         if key_state_tracker.get_key_state('shift', key_state_tracker.PRESSED) and key_state_tracker.get_key_state(STOCK_KEYBIND[i], key_state_tracker.JUST_PRESSED):
