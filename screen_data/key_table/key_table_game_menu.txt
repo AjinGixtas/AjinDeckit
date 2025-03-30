@@ -1,7 +1,6 @@
 6 48
 [A] / [Left] - Move left
+[D] / [Right] - Move right
 [Q] - Return to parent page
 [Ctrl] + [Q] - Quit application
 [Enter] - Select
-[Tab] - Change focus zone
-[Q] - Return to parent page

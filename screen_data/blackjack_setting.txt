@@ -1,7 +1,4 @@
-32 118
-
-
-
+26 118
 
 
 
@@ -23,3 +20,7 @@
 
     Due to technical laziness, no guide will be included, can you just please google it? Thank you so much ^^
     * House rule
+
+
+
+

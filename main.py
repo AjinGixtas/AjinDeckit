@@ -1,5 +1,5 @@
 from curses import wrapper, curs_set, error
-from time import sleep
+from time import sleep, perf_counter
 from components import key_state_tracker, scene_manager, resources
 def _main(stdscr):
     global old_settings
@@ -10,11 +10,12 @@ def _main(stdscr):
     curs_set(0)
     origin_x, origin_y, rows, columns = scene_manager.get_drawable_screen_data()
     
-    if rows < 32 or columns < 118:
+    if rows < 26 or columns < 118:
         print("The window size is too small, some feature and graphic will not be rendered correctly. Consider resizing it!")
-        print(f"Current dimension: {columns}×{rows}, required: 118×32")
+        print(f"Current dimension: {columns}×{rows}, required: 118×26")
         return
     while True:
+        start = perf_counter()
         if not production_mode: scene_manager.current_page._update()
         else: 
             try: scene_manager.current_page._update()
@@ -29,11 +30,12 @@ def _main(stdscr):
                 _end()
                 return
         if key_state_tracker.get_key_state('q'): scene_manager.change_page(scene_manager.MENU_INDEX)
-        if key_state_tracker.get_key_state('ctrl', key_state_tracker.JUST_PRESSED) and key_state_tracker.get_key_state('q', key_state_tracker.JUST_PRESSED):
+        if (key_state_tracker.get_key_state('ctrl', key_state_tracker.PRESSED) and key_state_tracker.get_key_state('q', key_state_tracker.JUST_PRESSED)) or (key_state_tracker.get_key_state('ctrl', key_state_tracker.JUST_PRESSED) and key_state_tracker.get_key_state('q', key_state_tracker.PRESSED)):
             _end()
             return
         key_state_tracker._update()
-        sleep(.05)
+        end = perf_counter()
+        sleep(max(0, 0.015625 - end+start))
 def _end():
     from sys import exit
     resources._end()

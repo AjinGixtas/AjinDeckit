@@ -15,6 +15,7 @@ def _start(_stdscr):
     init_pair(4, COLOR_RED, COLOR_BLACK)
     init_pair(5, COLOR_GREEN, COLOR_BLACK)
     init_pair(6, COLOR_MAGENTA, COLOR_BLACK)
+    init_pair(7, COLOR_BLACK, COLOR_BLACK)
     screen_data_path = Path(sys._MEIPASS if getattr(sys, 'frozen', False) else (dirname(abspath(__file__)) + '/..')  + '/screen_data')
     stdscr = _stdscr
 # There is no standarized numbering system yet, just wing it!

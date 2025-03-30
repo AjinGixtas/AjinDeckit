@@ -2,12 +2,17 @@ from pynput.keyboard import Listener, GlobalHotKeys, KeyCode, Key
 from time import time
 from copy import deepcopy
 from msvcrt import kbhit, getch
+from pygetwindow import getActiveWindow
 JUST_PRESSED = 0
 PRESSED = 1
 JUST_RELEASED = 2
 BLOCK_TIME = .25
-
+TARGET_WINDOW_TITLE = "main.py"
 keyboard_listener, hotkey_listener = None, None
+def is_window_focused():
+    active_window = getActiveWindow()
+    return active_window and TARGET_WINDOW_TITLE.lower() in active_window.title.lower()
+
 def ctrl_q():
     if kbhit(): _ = getch()
     key_states[JUST_PRESSED].append(GlobalKey('ctrl'))
@@ -46,6 +51,7 @@ def get_axis(negative_x_key, positive_x_key, negative_y_key = '', positive_y_key
 def on_press(key):
     global key_states, just_pressed_time_stamp
     if kbhit(): _ = getch()
+    if not is_window_focused(): return
     key = GlobalKey(key)
     key_states[JUST_PRESSED].append(key)
     key_states[PRESSED].append(key)

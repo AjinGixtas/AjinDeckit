@@ -1,9 +1,9 @@
-from pages import menu, game_menu, blackjack, solitaire
+from pages import menu, game_menu, blackjack, regicide
 from components import resources
 current_index = -1
 current_page = menu
 MENU_INDEX, GAME_MENU_INDEX, LEARN_MENU_INDEX, CREDIT_INDEX = 0, 1, 2, 3
-BLACKJACK_INDEX, SOLITAIRE_INDEX, FREECELL_INDEX, DUGEON_SOLITAIRE_INDEX = 4, 5, 6, 7
+BLACKJACK_INDEX, REGICIDE_INDEX, FREECELL_INDEX, DUGEON_SOLITAIRE_INDEX = 4, 5, 6, 7
 def _start():
     draw_screen_bone(menu.KEY_MAP_DISPLAY_TABLE)
     current_page._start()
@@ -14,7 +14,7 @@ def change_page(index):
     if current_index == MENU_INDEX: current_page = menu
     elif current_index == GAME_MENU_INDEX: current_page = game_menu
     elif current_index == BLACKJACK_INDEX: current_page = blackjack
-    elif current_index == SOLITAIRE_INDEX: current_page = solitaire
+    elif current_index == REGICIDE_INDEX: current_page = regicide
     draw_screen_bone(current_page.KEY_MAP_DISPLAY_TABLE)
     current_page._start()
 
