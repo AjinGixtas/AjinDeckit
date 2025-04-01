@@ -4,18 +4,21 @@ from components.key_state_tracker import get_key_state, get_axis
 from curses import newpad, color_pair
 from random import randint, shuffle
 KEY_MAP_DISPLAY_TABLE=['regicide']
-DECLARE_ATTACK, ACTIVATE_SUIT, DEAL_DAMAGE, SUFFER_DAMAGE = 0, 1, 2, 3
+DECLARE_ATTACK, ACTIVATE_SUIT, DEAL_DAMAGE, SUFFER_DAMAGE, END = 0, 1, 2, 3, 4
 BOARD_DIV = {
-    'index':0, 'src':'regicide.txt', 'discard_pile':[], 'draw_pile':[], 'active_pile':[], 'hand':[], 'is_rank_over_suit':False,
-    'royal_pile':[], 'boss_rank':None, 'boss_suit':None, 'boss_health':0, 'boss_attack':0, 'attack_output': None,
-    'joker_left':0, 'game_phase':DECLARE_ATTACK
+    'index':0, 'src':'regicide_board.txt', 'discard_pile':[], 'draw_pile':[], 'active_pile':[], 'hand':[], 'is_rank_over_suit':False,
+    'royal_pile':[], 'boss_rank':None, 'boss_suit':None, 'boss_health':0, 'boss_attack':0, 'boss_suit_disabled': False, 'attack_output': None,
+    'joker_left':0, 'game_phase':DECLARE_ATTACK,
+}
+PILE_DIV = {
+    'index':1,'src':'regicide_pile.txt', 'pad': None
 }
 SETTING_DIV = {
-    'hand_size':8, 'turn_draw': 0, 
+    'hand_size':8,
     'joker_in_pile_amount':0, 
     'starting_joker_amount':2,
     'boss_stat': { 'J':(20,10), 'Q':(30,15), 'K':(40,20) },
-    'auto_pass_phase': True 
+    'auto_pass_phase': True
 }
 
 FOCUSED_DIV_INDEX = BOARD_DIV['index']
@@ -26,6 +29,12 @@ def _start():
     setup_var()
     new_game()
 def setup_var():
+    global BOARD_DIV
+    BOARD_DIV = {
+        'index':0, 'src':'regicide_board.txt', 'discard_pile':[], 'draw_pile':[], 'active_pile':[], 'hand':[], 'is_rank_over_suit':False,
+        'royal_pile':[], 'boss_rank':None, 'boss_suit':None, 'boss_health':0, 'boss_attack':0, 'boss_suit_disabled': False, 'attack_output': None,
+        'joker_left':0, 'game_phase':DECLARE_ATTACK,
+    }
     BOARD_DIV['hand_zone_length'] = 80
     BOARD_DIV['hand_amount_anchor'] = (81, 13)
     BOARD_DIV['attack_data_display_anchor'] = (1,11)
@@ -33,16 +42,13 @@ def setup_var():
     BOARD_DIV['active_card_zone_length'] = 89
     BOARD_DIV['active_card_anchor'] = (27, 2)
     
-from copy import deepcopy
+    PILE_DIV['draw_pile_anchor'] = (0, 1)
+    PILE_DIV['discard_pile_anchor'] = (0, 9)
+    PILE_DIV['pile_display_length'] = 118
 def _update():
     global BOARD_DIV
-    key_to_skip = 'pad'
-    deep_copy_filtered = {k: deepcopy(v) for k, v in BOARD_DIV.items() if k != key_to_skip}
     if FOCUSED_DIV_INDEX == BOARD_DIV['index']: update_board_div()
-    new_copy_filterd = {k: deepcopy(v) for k, v in BOARD_DIV.items() if k != key_to_skip}
-    if new_copy_filterd != deep_copy_filtered: 
-        with open("log.txt", "a") as f:
-            f.write(str(new_copy_filterd) + '\n')
+    elif FOCUSED_DIV_INDEX == PILE_DIV['index']: update_pile_div()
 def _end():
     return
 
@@ -76,6 +82,7 @@ def update_board_div():
             if not isinstance(BOARD_DIV['attack_output'], int):
                 BOARD_DIV['game_phase'] = ACTIVATE_SUIT
                 render_active_pile()
+        if key_state_tracker.get_key_state('i', key_state_tracker.JUST_PRESSED): activate_joker()
         if update_hand: render_hand()
     def activate_suit_phase_update():
         # Activate suit and move to the next phase
@@ -122,6 +129,28 @@ def update_board_div():
     if BOARD_DIV['game_phase'] == ACTIVATE_SUIT: activate_suit_phase_update()
     if BOARD_DIV['game_phase'] == DEAL_DAMAGE: deal_damage_phase_update()
     if BOARD_DIV['game_phase'] == SUFFER_DAMAGE: suffer_damage_phase_update()
+    if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): 
+        start_pile_div()
+        render_div(PILE_DIV)
+from copy import deepcopy
+def start_pile_div():
+    global BOARD_DIV, PILE_DIV
+    draw_pile = deepcopy(BOARD_DIV['draw_pile'])
+    draw_pile.sort(key=lambda card:  (SUITS.index(suit(card)), RANKS.index(rank(card)) ))
+    for i in range(0, 7): PILE_DIV['pad'].addstr(PILE_DIV['draw_pile_anchor'][1]+i, PILE_DIV['draw_pile_anchor'][0], ' ' * PILE_DIV['pile_display_length'])
+    for i in range(0, 7): PILE_DIV['pad'].addstr(PILE_DIV['discard_pile_anchor'][1]+i, PILE_DIV['discard_pile_anchor'][0], ' ' * PILE_DIV['pile_display_length'])
+    marker = PILE_DIV['draw_pile_anchor'][0]
+    for i in range(len(draw_pile)):
+        image_drawer.draw_colored_image(PILE_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{draw_pile[i]}.txt', marker, PILE_DIV['draw_pile_anchor'][1], color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(suit(draw_pile[i]))))
+        marker += 1 + len(rank(draw_pile[i]))
+    marker = PILE_DIV['discard_pile_anchor'][0]
+    for i in range(len(BOARD_DIV['discard_pile'])):
+        image_drawer.draw_colored_image(PILE_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV['discard_pile'][i]}.txt', marker, PILE_DIV['discard_pile_anchor'][1], color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(suit(BOARD_DIV['discard_pile'][i]))))
+        marker += 1 + len(rank(BOARD_DIV['discard_pile'][i]))
+    refresh_div(PILE_DIV)
+def update_pile_div():
+    if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(BOARD_DIV)
+    
 def build_div(div):
     with open(resources.screen_data_path / div['src'], 'r', encoding='utf-8') as f:
         div['size'] = tuple(map(int, f.readline().split()))
@@ -139,8 +168,9 @@ def build_div(div):
     return div
 
 def new_game():
-    global BOARD_DIV
+    global BOARD_DIV, PILE_DIV
     BOARD_DIV = build_div(BOARD_DIV)
+    PILE_DIV = build_div(PILE_DIV)
     BOARD_DIV['joker_left'] = SETTING_DIV['starting_joker_amount']
     BOARD_DIV['discard_pile'] = []
     BOARD_DIV['active_pile'] = []
@@ -159,10 +189,10 @@ def new_game():
     for joker in range(SETTING_DIV['joker_in_pile_amount']):
         BOARD_DIV['draw_pile'].append('!'+JOKER_SUIT[joker%4])
     shuffle(BOARD_DIV['draw_pile'])
-    draw_card(8)
+    draw_card(SETTING_DIV['hand_size'])
     next_boss()
     render_board()
-    refresh_div(BOARD_DIV['index'])
+    refresh_div(BOARD_DIV)
 def next_boss():
     global BOARD_DIV
     if BOARD_DIV['royal_pile'] == []:
@@ -177,9 +207,11 @@ def next_boss():
     next_boss = BOARD_DIV['royal_pile'].pop()
     BOARD_DIV['boss_rank'] = rank(next_boss)
     BOARD_DIV['boss_suit'] = suit(next_boss)
+    BOARD_DIV['boss_suit_disabled'] = False
     BOARD_DIV['boss_health'], BOARD_DIV['boss_attack'] = SETTING_DIV['boss_stat'][BOARD_DIV['boss_rank']]
     BOARD_DIV['discard_pile'].extend(BOARD_DIV['active_pile'])
     BOARD_DIV['active_pile'] = []
+    render_pile_data()
 def calc_attack():
     cards = [card for card, selected in BOARD_DIV['hand'] if selected]
     if len(cards) == 0: return (0, 0, 0, 0)
@@ -208,7 +240,7 @@ def calc_attack():
     for companion in companions:
         attack_power += POINTS[RANKS.index(rank(companion))]
         active_suits[SUIT_ORDER.index(suit(companion))] = True
-    active_suits[SUIT_ORDER.index(suit(BOARD_DIV['boss_suit']))] = False # Enable suit value then disable it by boss late is clean code
+    if not BOARD_DIV['boss_suit_disabled']: active_suits[SUIT_ORDER.index(BOARD_DIV['boss_suit'])] = False # Enable suit value then disable it by boss late is clean code
     heal = attack_power if active_suits[0] else 0
     draw = attack_power if active_suits[1] else 0
     damage = (attack_power * 2) if active_suits[2] else attack_power
@@ -228,6 +260,25 @@ def activate_suit():
     draw_card(BOARD_DIV['attack_output'][1])
     shield(BOARD_DIV['attack_output'][3])
 
+def activate_joker():
+    if BOARD_DIV['joker_left'] <= 0: return
+    BOARD_DIV['joker_left'] -= 1
+    BOARD_DIV['boss_suit_disabled'] = True
+    render_boss()
+    render_hand()
+def new_hand():
+    if BOARD_DIV['joker_left'] <= 0: return
+    BOARD_DIV['joker_left'] -= 1
+    for i in range(len(BOARD_DIV['hand'])):
+        BOARD_DIV['hand'][i][1] = True
+    discard_cards = [card for card, selected in BOARD_DIV['hand'] if selected]
+    for card in discard_cards:
+        BOARD_DIV['discard_pile'].append(card)
+    BOARD_DIV['hand'] = []
+    draw_card(8)
+    render_hand()
+    render_pile_data()
+
 def heal(amount):
     shuffle(BOARD_DIV['discard_pile'])
     for i in range(min(amount, len(BOARD_DIV['discard_pile']))):
@@ -245,7 +296,7 @@ def calc_damage():
     cards = [card for card, selected in BOARD_DIV['hand'] if selected]
     point_total = 0
     for card in cards:
-        point_total += POINTS[RANKS.index(card[:-1])]
+        point_total += POINTS[RANKS.index(rank(card))]
     return point_total
 def take_damage():
     if calc_damage() < BOARD_DIV['boss_attack']: return 1
@@ -255,18 +306,8 @@ def take_damage():
         BOARD_DIV['discard_pile'].append(card)
     BOARD_DIV['hand'] = kept_cards
     return 0
-def new_hand():
-    if BOARD_DIV['joker_left'] <= 0: return
-    BOARD_DIV['joker_left'] -= 1
-    for i in range(len(BOARD_DIV['hand'])):
-        BOARD_DIV['hand'][i][1] = True
-    discard_cards = [card for card, selected in BOARD_DIV['hand'] if selected]
-    for card in discard_cards:
-        BOARD_DIV['discard_pile'].append(card)
-    BOARD_DIV['hand'] = []
-    draw_card(8)
-    render_hand()
-    
+
+
 def win():
     return
 def lose():
@@ -283,15 +324,15 @@ def render_board():
     
 def render_boss():
     BOARD_DIV['boss_card_anchor'] = (2,2) # (x,y)
-    image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/(str(BOARD_DIV['boss_rank'])+BOARD_DIV['boss_suit']+'.txt'), BOARD_DIV['boss_card_anchor'][0], BOARD_DIV['boss_card_anchor'][1], color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(BOARD_DIV['boss_suit'])))
+    image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/(str(BOARD_DIV['boss_rank'])+BOARD_DIV['boss_suit']+'.txt'), BOARD_DIV['boss_card_anchor'][0], BOARD_DIV['boss_card_anchor'][1], color_pair_obj=resources.get_color_pair_obj((1+SUITS.index(BOARD_DIV['boss_suit'])) if not BOARD_DIV['boss_suit_disabled'] else 0 ))
     BOARD_DIV['pad'].addstr(4, 20, f"{BOARD_DIV['boss_health']:3}", resources.get_color_pair_obj(5))
     BOARD_DIV['pad'].addstr(5, 20, f"{BOARD_DIV['boss_attack']:3}", resources.get_color_pair_obj(6))
-    BOARD_DIV['pad'].addstr(6, 20, str(SUIT_SYMBOL[SUITS.index(BOARD_DIV['boss_suit'])]), resources.get_color_pair_obj(1+SUITS.index(BOARD_DIV['boss_suit'])))
+    BOARD_DIV['pad'].addstr(6, 20, str(SUIT_SYMBOL[SUITS.index(BOARD_DIV['boss_suit'])]), resources.get_color_pair_obj((1+SUITS.index(BOARD_DIV['boss_suit'])) if not BOARD_DIV['boss_suit_disabled'] else 0))
     RANK_NAME = ('JACK', 'QUEEN', 'KING')
     SUIT_NAME = ('CLUB', 'SPADE', 'DIAMOND', 'HEART')
     boss_name = f'{RANK_NAME[RANKS.index(BOARD_DIV['boss_rank'])-10]} OF {SUIT_NAME[SUITS.index(BOARD_DIV['boss_suit'])]}'
     boss_name_div_width = 21
-    BOARD_DIV['pad'].addstr(1, 2, boss_name + (' ' * int((boss_name_div_width-len(boss_name)))), resources.get_color_pair_obj(1+SUITS.index(BOARD_DIV['boss_suit'])))
+    BOARD_DIV['pad'].addstr(1, 2, boss_name + (' ' * int((boss_name_div_width-len(boss_name)))), resources.get_color_pair_obj(1+SUITS.index(BOARD_DIV['boss_suit'])) if not BOARD_DIV['boss_suit_disabled'] else 0)
     BOARD_DIV['pad'].refresh(1, 1, BOARD_DIV['origin'][0]+1, BOARD_DIV['origin'][1]+1, BOARD_DIV['origin'][0]+8, BOARD_DIV['origin'][1]+22)
 def render_hand():
     global BOARD_DIV
@@ -299,16 +340,16 @@ def render_hand():
         attack_evaluation = calc_attack()
         #BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1]-1, BOARD_DIV['attack_data_display_anchor'][0], f"{attack_evaluation}                                 ")
         BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0], "                                                                                 ")
-        BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+9, "HEAL: 0", resources.get_color_pair_obj(4 if BOARD_DIV['boss_suit'] != 'H' else 7))
-        BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+26, "DRAW: 0", resources.get_color_pair_obj(3 if BOARD_DIV['boss_suit'] != 'D' else 7))
-        BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+43, "DAMAGE: 0", resources.get_color_pair_obj(1 if BOARD_DIV['boss_suit'] != 'C' else 0))
-        BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+62, "SHIELD: 0", resources.get_color_pair_obj(2 if BOARD_DIV['boss_suit'] != 'S' else 7))
+        BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+9, "HEAL: 0", resources.get_color_pair_obj(4 if BOARD_DIV['boss_suit'] != 'H' or BOARD_DIV['boss_suit_disabled'] else 7))
+        BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+26, "DRAW: 0", resources.get_color_pair_obj(3 if BOARD_DIV['boss_suit'] != 'D' or BOARD_DIV['boss_suit_disabled'] else 7))
+        BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+43, "DAMAGE: 0", resources.get_color_pair_obj(1 if BOARD_DIV['boss_suit'] != 'C' or BOARD_DIV['boss_suit_disabled'] else 0))
+        BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+62, "SHIELD: 0", resources.get_color_pair_obj(2 if BOARD_DIV['boss_suit'] != 'S' or BOARD_DIV['boss_suit_disabled'] else 7))
         
         if isinstance(attack_evaluation, tuple):
-            BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+15, f"{attack_evaluation[0] if BOARD_DIV['boss_suit'] != 'H' else ' ' :<5}")
-            BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+32, f"{f"{attack_evaluation[1] if attack_evaluation[1] <= SETTING_DIV['hand_size'] - len(BOARD_DIV['hand']) + sum(b for _, b in BOARD_DIV['hand']) else f"{attack_evaluation[1]}({SETTING_DIV['hand_size'] - len(BOARD_DIV['hand']) + sum(b for _, b in BOARD_DIV['hand'])})"}" if BOARD_DIV['boss_suit'] != 'D' else ' ' :<5}")
+            BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+15, f"{attack_evaluation[0] if BOARD_DIV['boss_suit'] != 'H' or BOARD_DIV['boss_suit_disabled'] else ' ' :<5}")
+            BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+32, f"{f"{attack_evaluation[1] if attack_evaluation[1] <= SETTING_DIV['hand_size'] - len(BOARD_DIV['hand']) + sum(b for _, b in BOARD_DIV['hand']) else f"{attack_evaluation[1]}({SETTING_DIV['hand_size'] - len(BOARD_DIV['hand']) + sum(b for _, b in BOARD_DIV['hand'])})"}" if BOARD_DIV['boss_suit'] != 'D' or BOARD_DIV['boss_suit_disabled']else ' ' :<5}")
             BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+51, f"{attack_evaluation[2]:<3}")
-            BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+70, f"{attack_evaluation[3] if BOARD_DIV['boss_suit'] != 'S' else ' ':<5}")
+            BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0]+70, f"{attack_evaluation[3] if BOARD_DIV['boss_suit'] != 'S' or BOARD_DIV['boss_suit_disabled'] else ' ':<5}")
         elif isinstance(attack_evaluation, int):
             if attack_evaluation == 1: 
                 BOARD_DIV['pad'].addstr(BOARD_DIV['attack_data_display_anchor'][1], BOARD_DIV['attack_data_display_anchor'][0],   " Only one Ace is allowed in companion attack!" + " " * 36)
@@ -340,7 +381,7 @@ def render_hand():
     elif BOARD_DIV['game_phase'] == SUFFER_DAMAGE: render_absorb_damage_data()
 
     for i in range(len(BOARD_DIV['hand'])):
-        image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV['hand'][i][0]}.txt', BOARD_DIV['player_hand_anchor'][0] + int(BOARD_DIV['hand_zone_length']/SETTING_DIV['hand_size']*i), BOARD_DIV['player_hand_anchor'][1] + (-1 if BOARD_DIV['hand'][i][1] else 0), color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(BOARD_DIV['hand'][i][0][-1])))
+        image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV['hand'][i][0]}.txt', BOARD_DIV['player_hand_anchor'][0] + int(BOARD_DIV['hand_zone_length']/SETTING_DIV['hand_size']*i), BOARD_DIV['player_hand_anchor'][1] + (-1 if BOARD_DIV['hand'][i][1] else 0), color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(suit(BOARD_DIV['hand'][i][0]))))
     BOARD_DIV['pad'].refresh(11, 1, BOARD_DIV['origin'][0]+11, BOARD_DIV['origin'][1]+1, BOARD_DIV['origin'][0]+22, BOARD_DIV['origin'][1]+81)
 def render_active_pile():
     global BOARD_DIV
@@ -350,15 +391,20 @@ def render_active_pile():
         image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV['active_pile'][i]}.txt', BOARD_DIV['active_card_anchor'][0] + int(BOARD_DIV['active_card_zone_length']/(len(BOARD_DIV['active_pile'])+1)*(i+1)) - 5, BOARD_DIV['active_card_anchor'][1], color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(suit(BOARD_DIV['active_pile'][i]))))
     BOARD_DIV['pad'].refresh(1, 24, BOARD_DIV['origin'][0]+1, BOARD_DIV['origin'][1]+24, BOARD_DIV['origin'][0]+8, BOARD_DIV['origin'][1]+116)
 def render_pile_data():
+    global BOARD_DIV
+    BOARD_DIV['pad'].addstr(10, 90, f"JOKER REMAINING: {BOARD_DIV['joker_left']}")
     BOARD_DIV['pad'].addstr(12, 94, f"{len(BOARD_DIV['draw_pile']):2}" )
     BOARD_DIV['pad'].addstr(12, 105, f"{len(BOARD_DIV['discard_pile']):<2}")
-    BOARD_DIV['pad'].refresh(12, 90, BOARD_DIV['origin'][0]+12, BOARD_DIV['origin'][1]+90, BOARD_DIV['origin'][0]+12, BOARD_DIV['origin'][1]+109)
- 
-def refresh_div(div_index):
-    global BOARD_DIV
-    if div_index == BOARD_DIV['index']: BOARD_DIV['pad'].refresh(0, 0, BOARD_DIV['origin'][0], BOARD_DIV['origin'][1], BOARD_DIV['end'][0], BOARD_DIV['end'][1])
+    BOARD_DIV['pad'].refresh(10, 90, BOARD_DIV['origin'][0]+10, BOARD_DIV['origin'][1]+90, BOARD_DIV['origin'][0]+12, BOARD_DIV['origin'][1]+118)
+    refresh_div(BOARD_DIV)
+def refresh_div(div):
+    div['pad'].refresh(0, 0, div['origin'][0], div['origin'][1], div['end'][0], div['end'][1])
+def render_div(div): 
+    global FOCUSED_DIV_INDEX
+    FOCUSED_DIV_INDEX = div['index']
+    refresh_div(div)
 
 def sort_hand(cards, sorted_rank, sorted_suit, is_rank_over_suit=True):
-    if is_rank_over_suit: cards.sort(key=lambda card: (sorted_rank.index(card[0][:-1]), sorted_suit.index(card[0][-1]) ))
-    else:                 cards.sort(key=lambda card: (sorted_suit.index(card[0][-1]),  sorted_rank.index(card[0][:-1]) ))
+    if is_rank_over_suit: cards.sort(key=lambda card: (sorted_rank.index(rank(card[0])), sorted_suit.index(suit(card[0])) ))
+    else:                 cards.sort(key=lambda card: (sorted_suit.index(suit(card[0])),  sorted_rank.index(rank(card[0])) ))
     return cards

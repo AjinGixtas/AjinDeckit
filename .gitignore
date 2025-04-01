@@ -1,1 +1,4 @@
 process_speed_log.txt
+log.txt
+*.pyc
+*.pyc

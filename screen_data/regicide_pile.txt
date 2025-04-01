@@ -1,0 +1,27 @@
+26 118
+DRAW PILE
+
+
+
+
+
+
+
+DISCARD PILE
+
+
+
+
+
+
+
+ ┌──────────────────────────────────────────────────────┐ ┌──────────────────────────────────────────────────────┐
+ │ Note: Draw pile and discard pile are sorted by       │ │ - Suits have ability and can be debuffed by boss.    │
+ │ rank-then-suit, not by order of draw!                │ │ - Numbered cards (2-10) are valued as-is.            │
+ │ - Joker can be used to disable boss debuff or draw 8 │ │ - Face cards' value equal to their attack.           │
+ │ new card.                                            │ │ - Ace(A) can be paired with another card and combine │
+ │ - Have fun card counting!                            │ │ both their power and suit together.                  │
+ └──────────────────────────────────────────────────────┘ └──────────────────────────────────────────────────────┘
+                                                  ╔─────────────────╗
+                                                  │ [A] - SEE BOARD │
+                                                  ╚─────────────────╝
