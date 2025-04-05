@@ -4,7 +4,7 @@ from curses import newpad, color_pair
 from random import randint, shuffle
 KEY_MAP_DISPLAY_TABLE = ['blackjack']
 # origin_x, origin_y, rows, columns = 0, 0, 0, 0
-BOARD_DIV   = { 'index':0, 'src':'blackjack_board.txt', 'deck_progress_index':0, 'deck':[], 
+BOARD_DIV   = { 'index':0, 'src':'boards/blackjack_board.txt', 'deck_progress_index':0, 'deck':[], 
     'player_hands_data':[{'ace':0, 'point':0, 'cards':[], 'doubled_down':False, 'surrendered':False }], 
     'player_focused_hand_index':0, 
     'dealer_hand_data':{'ace':0, 'point':0, 'insurance_bet':False, 'cards':[], 'is_face_up':[]}, 

@@ -8,7 +8,7 @@ def _start():
     global origin_x, origin_y, rows, columns, MENU_DIV
     origin_x, origin_y, rows, columns = scene_manager.get_drawable_screen_data()
     MENU_DIV = { 
-        'cursor_options_value' : (scene_manager.BLACKJACK_INDEX, scene_manager.REGICIDE_INDEX, scene_manager.FREECELL_INDEX, scene_manager.DUGEON_SOLITAIRE_INDEX),
+        'cursor_options_value' : (scene_manager.BLACKJACK_INDEX, scene_manager.REGICIDE_INDEX, scene_manager.ROYAL_EXECUTION_INDEX, scene_manager.SCOUNDREL_INDEX),
         'cursor_pos_arr' : ((2, 1), (2, 27), (2, 53), (2, 79)),
         'cursor_pos' : 0
     }

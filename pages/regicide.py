@@ -1,14 +1,14 @@
-# Remember to add clean up for hand re-rendering
 from components import resources, image_drawer, scene_manager, key_state_tracker
 from components.key_state_tracker import get_key_state, get_axis
 from curses import newpad, color_pair
 from random import randint, shuffle
+from pathlib import Path
 KEY_MAP_DISPLAY_TABLE=['regicide']
 DECLARE_ATTACK, ACTIVATE_SUIT, DEAL_DAMAGE, SUFFER_DAMAGE, END = 0, 1, 2, 3, 4
 BOARD_DIV = {
-    'index':0, 'src':'regicide_board.txt', 'discard_pile':[], 'draw_pile':[], 'active_pile':[], 'hand':[], 'is_rank_over_suit':False,
+    'index':0, 'src':'boards/regicide_board.txt', 'discard_pile':[], 'draw_pile':[], 'active_pile':[], 'hand':[], 'is_rank_over_suit':False,
     'royal_pile':[], 'boss_rank':None, 'boss_suit':None, 'boss_health':0, 'boss_attack':0, 'boss_suit_disabled': False, 'attack_output': None,
-    'joker_left':0, 'game_phase':DECLARE_ATTACK,
+    'joker_left':0, 'game_phase':DECLARE_ATTACK, 'waiting_for_next_game': False
 }
 PILE_DIV = {
     'index':1,'src':'regicide_pile.txt', 'pad': None
@@ -31,7 +31,7 @@ def _start():
 def setup_var():
     global BOARD_DIV
     BOARD_DIV = {
-        'index':0, 'src':'regicide_board.txt', 'discard_pile':[], 'draw_pile':[], 'active_pile':[], 'hand':[], 'is_rank_over_suit':False,
+        'index':0, 'src':'boards/regicide_board.txt', 'discard_pile':[], 'draw_pile':[], 'active_pile':[], 'hand':[], 'is_rank_over_suit':False,
         'royal_pile':[], 'boss_rank':None, 'boss_suit':None, 'boss_health':0, 'boss_attack':0, 'boss_suit_disabled': False, 'attack_output': None,
         'joker_left':0, 'game_phase':DECLARE_ATTACK,
     }
@@ -125,28 +125,33 @@ def update_board_div():
                 render_pile_data()
                 update_hand = True
         if update_hand: render_hand()
-    if BOARD_DIV['game_phase'] == DECLARE_ATTACK: declare_attack_phase_update()
-    if BOARD_DIV['game_phase'] == ACTIVATE_SUIT: activate_suit_phase_update()
-    if BOARD_DIV['game_phase'] == DEAL_DAMAGE: deal_damage_phase_update()
-    if BOARD_DIV['game_phase'] == SUFFER_DAMAGE: suffer_damage_phase_update()
+    if not BOARD_DIV['waiting_for_next_game']:
+        if BOARD_DIV['game_phase'] == DECLARE_ATTACK: declare_attack_phase_update()
+        if BOARD_DIV['game_phase'] == ACTIVATE_SUIT: activate_suit_phase_update()
+        if BOARD_DIV['game_phase'] == DEAL_DAMAGE: deal_damage_phase_update()
+        if BOARD_DIV['game_phase'] == SUFFER_DAMAGE: suffer_damage_phase_update()
     if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): 
         start_pile_div()
         render_div(PILE_DIV)
+    if (key_state_tracker.get_key_state('o', key_state_tracker.PRESSED) and key_state_tracker.get_key_state('p', key_state_tracker.JUST_PRESSED)) or (key_state_tracker.get_key_state('p', key_state_tracker.PRESSED) and key_state_tracker.get_key_state('o', key_state_tracker.JUST_PRESSED)):
+        new_game()
 from copy import deepcopy
 def start_pile_div():
     global BOARD_DIV, PILE_DIV
-    draw_pile = deepcopy(BOARD_DIV['draw_pile'])
-    draw_pile.sort(key=lambda card:  (SUITS.index(suit(card)), RANKS.index(rank(card)) ))
     for i in range(0, 7): PILE_DIV['pad'].addstr(PILE_DIV['draw_pile_anchor'][1]+i, PILE_DIV['draw_pile_anchor'][0], ' ' * PILE_DIV['pile_display_length'])
     for i in range(0, 7): PILE_DIV['pad'].addstr(PILE_DIV['discard_pile_anchor'][1]+i, PILE_DIV['discard_pile_anchor'][0], ' ' * PILE_DIV['pile_display_length'])
     marker = PILE_DIV['draw_pile_anchor'][0]
+    draw_pile = deepcopy(BOARD_DIV['draw_pile'])
+    draw_pile.sort(key=lambda card:  (SUITS.index(suit(card)), RANKS.index(rank(card)) ))
     for i in range(len(draw_pile)):
         image_drawer.draw_colored_image(PILE_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{draw_pile[i]}.txt', marker, PILE_DIV['draw_pile_anchor'][1], color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(suit(draw_pile[i]))))
         marker += 1 + len(rank(draw_pile[i]))
     marker = PILE_DIV['discard_pile_anchor'][0]
+    discard_pile = deepcopy(BOARD_DIV['discard_pile'])
+    discard_pile.sort(key=lambda card:  (SUITS.index(suit(card)), RANKS.index(rank(card)) ))
     for i in range(len(BOARD_DIV['discard_pile'])):
-        image_drawer.draw_colored_image(PILE_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV['discard_pile'][i]}.txt', marker, PILE_DIV['discard_pile_anchor'][1], color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(suit(BOARD_DIV['discard_pile'][i]))))
-        marker += 1 + len(rank(BOARD_DIV['discard_pile'][i]))
+        image_drawer.draw_colored_image(PILE_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{discard_pile[i]}.txt', marker, PILE_DIV['discard_pile_anchor'][1], color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(suit(discard_pile[i]))))
+        marker += 1 + len(rank(discard_pile[i]))
     refresh_div(PILE_DIV)
 def update_pile_div():
     if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): render_div(BOARD_DIV)
@@ -171,9 +176,16 @@ def new_game():
     global BOARD_DIV, PILE_DIV
     BOARD_DIV = build_div(BOARD_DIV)
     PILE_DIV = build_div(PILE_DIV)
+    BOARD_DIV['waiting_for_next_game'] = False
     BOARD_DIV['joker_left'] = SETTING_DIV['starting_joker_amount']
+    BOARD_DIV['draw_pile'] = []
     BOARD_DIV['discard_pile'] = []
     BOARD_DIV['active_pile'] = []
+    BOARD_DIV['royal_pile'] = []
+    BOARD_DIV['hand'] = []
+    BOARD_DIV['boss_rank'] = None
+    BOARD_DIV['boss_suit'] = None
+    BOARD_DIV['game_phase'] = DECLARE_ATTACK
     # Setup royal pile
     for rank in ('K', 'Q', 'J'):
         rank_pile = []
@@ -275,7 +287,7 @@ def new_hand():
     for card in discard_cards:
         BOARD_DIV['discard_pile'].append(card)
     BOARD_DIV['hand'] = []
-    draw_card(8)
+    draw_card(SETTING_DIV['hand_size'])
     render_hand()
     render_pile_data()
 
@@ -309,9 +321,9 @@ def take_damage():
 
 
 def win():
-    return
+    BOARD_DIV['waiting_for_next_game'] = True
 def lose():
-    return
+    BOARD_DIV['waiting_for_next_game'] = True
 
 def suit(card): return card[-1]
 def rank(card): return card[:-1]
@@ -395,6 +407,8 @@ def render_pile_data():
     BOARD_DIV['pad'].addstr(10, 90, f"JOKER REMAINING: {BOARD_DIV['joker_left']}")
     BOARD_DIV['pad'].addstr(12, 94, f"{len(BOARD_DIV['draw_pile']):2}" )
     BOARD_DIV['pad'].addstr(12, 105, f"{len(BOARD_DIV['discard_pile']):<2}")
+    image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/'___card.txt', 90, 13, color_pair_obj=resources.get_color_pair_obj(5))
+    image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV['discard_pile'][-1] if len(BOARD_DIV['discard_pile']) else 'blank_card'}.txt', 101, 13, color_pair_obj=resources.get_color_pair_obj( (1+SUITS.index(suit(BOARD_DIV['discard_pile'][-1]))) if len(BOARD_DIV['discard_pile']) > 0 else 0 ))
     BOARD_DIV['pad'].refresh(10, 90, BOARD_DIV['origin'][0]+10, BOARD_DIV['origin'][1]+90, BOARD_DIV['origin'][0]+12, BOARD_DIV['origin'][1]+118)
     refresh_div(BOARD_DIV)
 def refresh_div(div):
