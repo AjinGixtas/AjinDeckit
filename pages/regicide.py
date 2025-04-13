@@ -7,8 +7,8 @@ KEY_MAP_DISPLAY_TABLE=['regicide']
 DECLARE_ATTACK, ACTIVATE_SUIT, DEAL_DAMAGE, SUFFER_DAMAGE, END = 0, 1, 2, 3, 4
 BOARD_DIV = {
     'index':0, 'src':'boards/regicide_board.txt', 'discard_pile':[], 'draw_pile':[], 'active_pile':[], 'hand':[], 'is_rank_over_suit':False,
-    'royal_pile':[], 'boss_rank':None, 'boss_suit':None, 'boss_health':0, 'boss_attack':0, 'boss_suit_disabled': False, 'attack_output': None,
-    'joker_left':0, 'game_phase':DECLARE_ATTACK, 'waiting_for_next_game': False
+    'royal_pile':[], 'boss_rank':None, 'boss_suit':None, 'boss_health':0, 'boss_attack':0, 'boss_suit_disabled': False, 'boss_suit_remaining': [],
+    'attack_output': None, 'joker_left':0, 'game_phase':DECLARE_ATTACK, 'waiting_for_next_game': False
 }
 PILE_DIV = {
     'index':1,'src':'regicide_pile.txt', 'pad': None
@@ -24,7 +24,7 @@ SETTING_DIV = {
 FOCUSED_DIV_INDEX = BOARD_DIV['index']
 SUIT_SYMBOL, SUITS, RANKS, POINTS = ('♣','♠','♦','♥',), ('C', 'S', 'D', 'H'), ('A','2','3','4','5','6','7','8','9','10','J','Q','K'), (1,2,3,4,5,6,7,8,9,10,SETTING_DIV['boss_stat']['J'][1],SETTING_DIV['boss_stat']['Q'][1],SETTING_DIV['boss_stat']['K'][1])
 def _start():
-    global origin_x, origin_y, rows, columns
+    global origin_x, origin_y, rows, columns, BOARD_DIV
     origin_x, origin_y, rows, columns = scene_manager.get_drawable_screen_data()
     setup_var()
     new_game()
@@ -79,7 +79,7 @@ def update_board_div():
         # Attack and move to the next phase
         if key_state_tracker.get_key_state('space', key_state_tracker.JUST_PRESSED):
             BOARD_DIV['attack_output'] = exec_attack()
-            if not isinstance(BOARD_DIV['attack_output'], int):
+            if not isinstance(BOARD_DIV['attack_output'], int) and BOARD_DIV['attack_output'] != (0, 0, 0, 0):
                 BOARD_DIV['game_phase'] = ACTIVATE_SUIT
                 render_active_pile()
         if key_state_tracker.get_key_state('i', key_state_tracker.JUST_PRESSED): activate_joker()
@@ -95,6 +95,7 @@ def update_board_div():
         # Deal damage and move to the next phase
         if key_state_tracker.get_key_state('space', key_state_tracker.JUST_PRESSED) or SETTING_DIV['auto_pass_phase']:
             BOARD_DIV['game_phase'] = SUFFER_DAMAGE
+            calc_damage_tolerance()
             damage_boss(BOARD_DIV['attack_output'][2])
             render_boss()
             render_hand()
@@ -133,7 +134,7 @@ def update_board_div():
     if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): 
         start_pile_div()
         render_div(PILE_DIV)
-    if (key_state_tracker.get_key_state('o', key_state_tracker.PRESSED) and key_state_tracker.get_key_state('p', key_state_tracker.JUST_PRESSED)) or (key_state_tracker.get_key_state('p', key_state_tracker.PRESSED) and key_state_tracker.get_key_state('o', key_state_tracker.JUST_PRESSED)):
+    if key_state_tracker.get_key_state('backspace', key_state_tracker.PRESSED):
         new_game()
 from copy import deepcopy
 def start_pile_div():
@@ -186,6 +187,7 @@ def new_game():
     BOARD_DIV['boss_rank'] = None
     BOARD_DIV['boss_suit'] = None
     BOARD_DIV['game_phase'] = DECLARE_ATTACK
+    BOARD_DIV['boss_suit_remaining'] = ['C', 'S', 'D', 'H']
     # Setup royal pile
     for rank in ('K', 'Q', 'J'):
         rank_pile = []
@@ -211,6 +213,8 @@ def next_boss():
         win()
         return
     if BOARD_DIV['boss_rank'] != None:
+        if len(BOARD_DIV['boss_suit_remaining']) > 0: BOARD_DIV['boss_suit_remaining'].remove(BOARD_DIV['boss_suit'])
+        else: BOARD_DIV['boss_suit_remaining'] = ['C', 'S', 'D', 'H']
         killed_boss = BOARD_DIV['boss_rank'] + BOARD_DIV['boss_suit']
         if BOARD_DIV['boss_health'] == 0: # Perfect kill!
             BOARD_DIV['draw_pile'].append(killed_boss)
@@ -319,12 +323,22 @@ def take_damage():
     BOARD_DIV['hand'] = kept_cards
     return 0
 
-
 def win():
     BOARD_DIV['waiting_for_next_game'] = True
+    BOARD_DIV['pad'].addstr(24, 1, "You've won! Press `backspace` to start a new game.")
+    refresh_div(BOARD_DIV)
 def lose():
     BOARD_DIV['waiting_for_next_game'] = True
-
+    BOARD_DIV['pad'].addstr(24, 1, "You've lost! Press `backspace` to start a new game.")
+    refresh_div(BOARD_DIV)
+def calc_damage_tolerance():
+    global BOARD_DIV
+    total_health = 0
+    for card in BOARD_DIV['hand']:
+        total_health += POINTS[RANKS.index(rank(card[0]))]
+    # Not enough card with no bailout joker
+    if total_health < BOARD_DIV['boss_attack'] and BOARD_DIV['joker_left'] == 0:
+        lose()
 def suit(card): return card[-1]
 def rank(card): return card[:-1]
 
@@ -397,10 +411,16 @@ def render_hand():
     BOARD_DIV['pad'].refresh(11, 1, BOARD_DIV['origin'][0]+11, BOARD_DIV['origin'][1]+1, BOARD_DIV['origin'][0]+22, BOARD_DIV['origin'][1]+81)
 def render_active_pile():
     global BOARD_DIV
+    # Clear drawing for the next draw step
     for y in range(BOARD_DIV['active_card_anchor'][1], BOARD_DIV['active_card_anchor'][1]+7):
         BOARD_DIV['pad'].addstr(y, 24, ' '*93)
+    # Draw active cards
     for i in range(len(BOARD_DIV['active_pile'])):
         image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV['active_pile'][i]}.txt', BOARD_DIV['active_card_anchor'][0] + int(BOARD_DIV['active_card_zone_length']/(len(BOARD_DIV['active_pile'])+1)*(i+1)) - 5, BOARD_DIV['active_card_anchor'][1], color_pair_obj=resources.get_color_pair_obj(1+SUITS.index(suit(BOARD_DIV['active_pile'][i]))))
+    # Draw upcoming suits
+    BOARD_DIV['pad'].addstr(1, 110, ' ' * 7)
+    for i in range(len(BOARD_DIV['boss_suit_remaining'])):
+        BOARD_DIV['pad'].addstr(1, 109+i*2, SUIT_SYMBOL[SUITS.index(BOARD_DIV['boss_suit_remaining'][i])], resources.get_color_pair_obj(1+SUITS.index(BOARD_DIV['boss_suit_remaining'][i])))
     BOARD_DIV['pad'].refresh(1, 24, BOARD_DIV['origin'][0]+1, BOARD_DIV['origin'][1]+24, BOARD_DIV['origin'][0]+8, BOARD_DIV['origin'][1]+116)
 def render_pile_data():
     global BOARD_DIV

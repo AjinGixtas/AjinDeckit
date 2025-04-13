@@ -1,1 +1,6 @@
-0 0
+5 50
+[I] - Activate joker, disable boss debuff
+[J] - Activate joker, draw a new hand
+[1-8] - Select card
+[Space] - Play selected cards
+[Backspace] - Start a new game

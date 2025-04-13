@@ -5,7 +5,7 @@ from random import randint, shuffle
 KEY_MAP_DISPLAY_TABLE=['royal_execution']
 BOARD_DIV = {
     'index': 0, 'src': 'boards/royal_execution_board.txt', 'pad': None,
-    'draw_pile': [], 'discard_pile': [], 'royal_piles': [ [], [], [], [] ], 'hand': []
+    'draw_pile': [], 'discard_pile': [], 'royal_piles': [ [], [], [], [] ], 'executor_piles': [ [], [], [], [] ], 'hand': []
 }
 SETTING_DIV = {
 }
@@ -14,9 +14,13 @@ def _start():
     global origin_x, origin_y, rows, columns, BOARD_DIV
     origin_x, origin_y, rows, columns = scene_manager.get_drawable_screen_data()
     BOARD_DIV = build_div(BOARD_DIV)
+    setup_var()
     new_game()
     render_div(BOARD_DIV)
-    print(BOARD_DIV)
+def setup_var():
+    BOARD_DIV['royal_card_zone_anchor'] = (5,0)
+    BOARD_DIV['royal_card_anchors'] = (((3,2),(3,4),(3,6)),((14,2),(14,4),(14,6)),((25,2),(25,4),(25,6)),((36,2),(36,4),(36,6)))
+    BOARD_DIV['royal_pile_zone'] = ((3,2), (44,12))
 def build_div(div):
     with open(resources.screen_data_path / div['src'], 'r', encoding='utf-8') as f:
         div['size'] = tuple(map(int, f.readline().split()))
@@ -43,16 +47,17 @@ def new_game():
     BOARD_DIV['draw_pile'] = []
     BOARD_DIV['discard_pile'] = []
     BOARD_DIV['hand'] = []
-    royal_pile = []
     
-    for rank in ('A','2','3','4','5','6','7','8','9','10'):
+    for tavern_rank in ('A','2','3','4','5','6','7','8','9','10'):
         for suit in SUITS:
-            BOARD_DIV['draw_pile'].append(rank+suit)
+            BOARD_DIV['draw_pile'].append(tavern_rank+suit)
     shuffle(BOARD_DIV['draw_pile'])
-    for rank in ('K', 'Q', 'J'):
+    
+    royal_pile = []
+    for royal_rank in ('K', 'Q', 'J'):
         rank_pile = []
         for suit in SUITS:
-            rank_pile.append(rank + suit)
+            rank_pile.append(royal_rank + suit)
         shuffle(rank_pile)  
         royal_pile += rank_pile
     shuffle(royal_pile)
@@ -61,6 +66,7 @@ def new_game():
         for j in range(3):
             BOARD_DIV['royal_piles'][i].append(royal_pile[marker])
             marker += 1
+    render_royal_piles()
 def _update():
     return
 def draw_hand():
@@ -68,6 +74,16 @@ def draw_hand():
     # Discard all remaining card in hand
     BOARD_DIV['discard_pile'] += BOARD_DIV['hand']
     BOARD_DIV['hand'] = []
-    
+
+def render_royal_piles():
+    global BOARD_DIV
+    for x in range(4):
+        for y in range(len(BOARD_DIV['royal_piles'][x])):
+            if y != len(BOARD_DIV['royal_piles'][x])-1: image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/'___card.txt', BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['royal_card_anchors'][x][y][0], BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['royal_card_anchors'][x][y][1], color_pair_obj=resources.get_color_pair_obj(5))
+            else: image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV['royal_piles'][x][y]}.txt', BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['royal_card_anchors'][x][y][0], BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['royal_card_anchors'][x][y][1], color_pair_obj=resources.get_color_pair_obj((1+SUITS.index(suit(BOARD_DIV['royal_piles'][x][y])))))
+    #print(               f"{BOARD_DIV['royal_pile_zone'][0][1]} {BOARD_DIV['royal_pile_zone'][0][0]} {BOARD_DIV['origin'][1] + BOARD_DIV['royal_pile_zone'][0][1]} {BOARD_DIV['origin'][0] + BOARD_DIV['royal_pile_zone'][0][0]} {BOARD_DIV['origin'][1] + BOARD_DIV['royal_pile_zone'][1][1]} {BOARD_DIV['origin'][0] + BOARD_DIV['royal_pile_zone'][1][0]}")
+    BOARD_DIV['pad'].refresh(BOARD_DIV['royal_pile_zone'][0][1],  BOARD_DIV['royal_pile_zone'][0][0],  BOARD_DIV['origin'][1] + BOARD_DIV['royal_pile_zone'][0][1],  BOARD_DIV['origin'][0] + BOARD_DIV['royal_pile_zone'][0][0],  BOARD_DIV['origin'][1] + BOARD_DIV['royal_pile_zone'][1][1],  BOARD_DIV['origin'][0] + BOARD_DIV['royal_pile_zone'][1][0])
 def _end():
     return
+def suit(card): return card[-1]
+def rank(card): return card[:-1]
