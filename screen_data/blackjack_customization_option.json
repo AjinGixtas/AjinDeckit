@@ -17,4 +17,5 @@
   ], 
   "focused_index": [0, 2], 
   "pad": "<_curses.window object at 0x0000010D7A5FFF90>", 
-  "size": [27, 85], "origin": [26, 114], "end": [53, 199], "focused_foundation_pile_index": -1, "focused_tableau_pile_index": -1}
+  "size": [27, 85], "origin": [26, 114], "end": [53, 199], "focused_foundation_pile_index": -1, "focused_tableau_pile_index": -1
+}

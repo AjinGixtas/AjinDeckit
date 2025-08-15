@@ -53,14 +53,13 @@ def on_press(key):
     if kbhit(): _ = getch()
     if not is_window_focused(): return
     key = GlobalKey(key)
-    key_states[JUST_PRESSED].append(key)
+    if (key not in key_states[PRESSED]): key_states[JUST_PRESSED].append(key)
     key_states[PRESSED].append(key)
     just_pressed_time_stamp[key] = time()
 def on_release(key):
     global key_states, just_pressed_time_stamp
     if kbhit(): _ = getch()
     key = GlobalKey(key)
-    key_states[JUST_RELEASED].append(GlobalKey(key))
     key_states[PRESSED] = [ x for x in key_states[JUST_PRESSED] if x.vk != key.vk ]
 
 def find_first_matching_key(d, attribute_name, target_value):

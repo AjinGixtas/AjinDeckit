@@ -209,12 +209,11 @@ def new_game():
     refresh_div(BOARD_DIV)
 def next_boss():
     global BOARD_DIV
-    if BOARD_DIV['royal_pile'] == []:
+    if len(BOARD_DIV['royal_pile']) <= 0:
         win()
         return
-    if BOARD_DIV['boss_rank'] != None:
-        if len(BOARD_DIV['boss_suit_remaining']) > 0: BOARD_DIV['boss_suit_remaining'].remove(BOARD_DIV['boss_suit'])
-        else: BOARD_DIV['boss_suit_remaining'] = ['C', 'S', 'D', 'H']
+    if BOARD_DIV['boss_rank'] != None and len(BOARD_DIV['boss_rank']) > 0:
+        if BOARD_DIV['boss_suit_remaining'] == None or len(BOARD_DIV['boss_suit_remaining']) == 0: BOARD_DIV['boss_suit_remaining'] = ['C', 'S', 'D', 'H']
         killed_boss = BOARD_DIV['boss_rank'] + BOARD_DIV['boss_suit']
         if BOARD_DIV['boss_health'] == 0: # Perfect kill!
             BOARD_DIV['draw_pile'].append(killed_boss)
@@ -227,6 +226,7 @@ def next_boss():
     BOARD_DIV['boss_health'], BOARD_DIV['boss_attack'] = SETTING_DIV['boss_stat'][BOARD_DIV['boss_rank']]
     BOARD_DIV['discard_pile'].extend(BOARD_DIV['active_pile'])
     BOARD_DIV['active_pile'] = []
+    BOARD_DIV['boss_suit_remaining'].remove(BOARD_DIV['boss_suit'])
     render_pile_data()
 def calc_attack():
     cards = [card for card, selected in BOARD_DIV['hand'] if selected]
