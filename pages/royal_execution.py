@@ -1,3 +1,14 @@
+# --- AI CODE START ---
+import logging
+
+logging.basicConfig(
+    filename='royal_execution.log',
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s'
+)
+# --- AI CODE END ---
+
+
 from components import resources, image_drawer, scene_manager, key_state_tracker
 from components.key_state_tracker import get_key_state, get_axis
 from curses import newpad, color_pair
@@ -28,7 +39,7 @@ def _end():
     return
 
 def setup_var():
-    BOARD_DIV['royal_card_zone_anchor'] = (3,0)
+    BOARD_DIV['royal_card_zone_anchor'] = (3,1)
     BOARD_DIV['royal_card_anchors'] = (((0,1),(0,2),(0,3)),((12,1),(12,2),(12,3)),((24,1),(24,2),(24,3)),((36,1),(36,2),(36,3)))
     BOARD_DIV['royal_pile_zone'] = ((0,0), (44,12))
     BOARD_DIV['drew_card_anchors'] = ((55, 3), (58, 3), (61, 3))
@@ -96,8 +107,6 @@ def new_game():
 def draw_hand():
     global BOARD_DIV
     # Discard all remaining card in hand
-    BOARD_DIV['selected_card_index'] = -1
-    BOARD_DIV['selected_pile_index'] = -1
     BOARD_DIV['discard_pile'] += BOARD_DIV['hand']
     BOARD_DIV['hand'] = []
     for i in range(3):
@@ -115,34 +124,40 @@ def draw_card():
 
 def play_card() -> int:
     global BOARD_DIV
-    if BOARD_DIV['selected_card_index'] == -1 or BOARD_DIV['selected_pile_index'] == -1: # No card selected
-        return 1
-    if len(BOARD_DIV['hand']) == 0: # No card in hand
-        return 2
-    if len(BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']]) > 3: # executor pile is full
-        return 3
+    if BOARD_DIV['selected_card_index'] == -1 or BOARD_DIV['selected_pile_index'] == -1:
+        return 1 # No card selected
+    if len(BOARD_DIV['hand']) == 0:
+        return 2 # No card in hand
+    if len(BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']]) > 3:
+        return 3 # executor pile is full
     card = BOARD_DIV['hand'][BOARD_DIV['selected_card_index']]
-    if rank(card) == 'K' or rank(card) == 'Q' or rank(card) == 'J': # HOW DID THESE ROYAL CARDS GET IN HAND?
-        return 4
+    if rank(card) == 'K' or rank(card) == 'Q' or rank(card) == 'J':
+        return 4 # HOW DID THESE ROYAL CARDS GET IN HAND?
     executor_index = len(BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']])
     if (executor_index == 0 and 
             point(rank(BOARD_DIV['hand'][BOARD_DIV['selected_card_index']])) < 
             point(rank(BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']][-1])) - 10
-        ): # First card fail the minimum point check
-        return 5
+        ):
+        return 5 # First card fail the minimum point check
     if (executor_index == 1 and 
             point(rank(BOARD_DIV['hand'][BOARD_DIV['selected_card_index']])) + 
             point(rank(BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']][0])) <
             point(rank(BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']][-1]))
-        ): # Second card fail the point check
-        return 6
+        ):
+        return 6 # Second card fail the point check
     if (executor_index == 2 and 
             suit(BOARD_DIV['hand'][BOARD_DIV['selected_card_index']]) != 
             suit(BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']][-1])
-        ): # Third card fail the suit check
-        return 7
+        ): 
+        return 7 # Third card fail the suit check
+    if len(BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']]) == 0: 
+        return 8 # No royal card in the pile
+    
     BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']].append(BOARD_DIV['hand'].pop(BOARD_DIV['selected_card_index']))
     BOARD_DIV['selected_card_index'] = -1
+    if executor_index == 2: # If the executor pile is full, remove the royal card
+        BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']].pop()
+        BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']].clear()
     render_royal_piles()
     render_draw_pile()
     return 0
@@ -151,6 +166,8 @@ def play_card() -> int:
 def render_royal_piles():
     global BOARD_DIV
     keybind_char = ['z', 'x', 'c', 'v']
+    for i in range(15):
+        BOARD_DIV['pad'].addstr(BOARD_DIV['royal_card_zone_anchor'][1] + 1 + i, BOARD_DIV['royal_card_zone_anchor'][0], ' ' * 49)
     for x in range(4):
         executor_pile_anchor_x = 0
         # --- Render Royal cards ---
@@ -185,6 +202,7 @@ def render_royal_piles():
                 executor_pile_anchor_x + y * 2, 
                 color_pair_obj=resources.get_color_pair_obj((1+SUITS.index(suit(BOARD_DIV['executor_piles'][x][y])))))
     render_div(BOARD_DIV) # FUCK IT
+
 def render_draw_pile():
     BOARD_DIV['pad'].addstr(BOARD_DIV['royal_card_zone_anchor'][1] + 2, BOARD_DIV['royal_card_zone_anchor'][0] + 52, f'×{len(BOARD_DIV["draw_pile"])}')
 
@@ -204,6 +222,8 @@ def render_draw_pile():
             BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['drew_card_anchors'][i][1] + (-1 if i == BOARD_DIV['selected_card_index'] else 0), 
             color_pair_obj=resources.get_color_pair_obj((1+SUITS.index(suit(BOARD_DIV['hand'][i])))))
     render_div(BOARD_DIV) # FUCK IT
+
+
 def suit(card:str) -> str: return card[-1]
 def rank(card:str) -> str: return card[:-1]
 def point(rank:str) -> int: return POINT_LOOKUP_TABLE[rank]
@@ -211,11 +231,11 @@ def point(rank:str) -> int: return POINT_LOOKUP_TABLE[rank]
 def update_board():
     if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): draw_hand()
     if key_state_tracker.get_key_state('space', key_state_tracker.JUST_PRESSED): 
-        print(BOARD_DIV)
-        print(play_card())
-        print(BOARD_DIV)
-    BOARD_DIV['pad'].addstr(0, 0, f'{key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED)}')
-    render_div(BOARD_DIV)
+        # Logging before play_card
+        logging.info(f'Attempting to play card. BOARD_DIV before: {repr(BOARD_DIV)}')
+        exit_code = play_card()
+        # Logging after play_card
+        logging.info(f'Attempted play_card. BOARD_DIV after: {repr(BOARD_DIV)}, exit_code: {exit_code}')
     new_index = -2
     if key_state_tracker.get_key_state('1'):  new_index = 0
     elif key_state_tracker.get_key_state('2'): new_index = 1
