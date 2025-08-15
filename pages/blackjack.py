@@ -281,8 +281,8 @@ def split():
     BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['ace'] = 1
     BOARD_DIV['player_hands_data'].append({'ace': (1 if card[0]=='A' else 0), 'point':POINTS[resources.get_first_dupe_index(RANKS, card[:-1])], 'cards':[card], 'doubled_down':False, 'surrendered':False})
     BOARD_DIV['pad'].addstr(12, 88, str(len(BOARD_DIV['player_hands_data'])).rjust(2, '0'))
-    BOARD_DIV['pad'].addstr(21, 77, '[▼] Hand below')
     rerender_player_hand()
+    BOARD_DIV['pad'].addstr(20, 77, '[▼] Hand below')
 def finish_turn():
     BOARD_DIV['pad'].addstr(22, 1, '                                                                                                                      ')
     BOARD_DIV['dealer_hand_data']['is_face_up'][0] = True
@@ -309,8 +309,6 @@ def rerender_player_hand():
     global BOARD_DIV
     blank = ' ' * 89
     BOARD_DIV['pad'].addstr(13, 85, str(BOARD_DIV['player_focused_hand_index']+1).rjust(2, '0'))
-    BOARD_DIV['pad'].addstr(13, 77, '              ' if BOARD_DIV['player_focused_hand_index'] == 0 else '[▲] Hand above')
-    BOARD_DIV['pad'].addstr(20, 77, '              ' if BOARD_DIV['player_focused_hand_index'] == len(BOARD_DIV['player_hands_data']) - 1 else '[▼] Hand below')
     for i in range(7): BOARD_DIV['pad'].addstr(BOARD_DIV['y_pos'][1] + i, 2, blank)
     for i in range(len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])):
         image_drawer.draw_colored_image(BOARD_DIV['pad'], resources.screen_data_path / 'drawings' / 'cards' / f'{BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i]}.txt', int(2 + 80.00 / (len(BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'])*2) * (i*2+1)), BOARD_DIV['y_pos'][1], color_pair_obj=resources.get_color_pair_obj(resources.SUITS_INDEX_DICT[BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['cards'][i][-1]]))
@@ -331,6 +329,8 @@ def rerender_player_hand():
         if len(bar) < 17: BOARD_DIV['pad'].addstr(13, 19,'│')
     if len(bar) > 21: BOARD_DIV['pad'].addstr(22, 1, 'HAND BUSTED!                                                                                                          ', resources.get_color_pair_obj(4))
     BOARD_DIV['pad'].addstr(13, max(25, 2 + len(bar)), f' {BOARD_DIV['player_hands_data'][BOARD_DIV['player_focused_hand_index']]['point']}P')
+    BOARD_DIV['pad'].addstr(13, 77, '              ' if BOARD_DIV['player_focused_hand_index'] == 0 else '[▲] Hand above')
+    BOARD_DIV['pad'].addstr(20, 77, '              ' if BOARD_DIV['player_focused_hand_index'] == len(BOARD_DIV['player_hands_data']) - 1 else '[▼] Hand below')
 def rerender_dealer_hand():
     global BOARD_DIV
     blank = ' ' * 89

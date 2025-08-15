@@ -38,12 +38,12 @@ def setup_var():
     BOARD_DIV['hand_zone_length'] = 80
     BOARD_DIV['hand_amount_anchor'] = (81, 13)
     BOARD_DIV['attack_data_display_anchor'] = (1,11)
-    BOARD_DIV['player_hand_anchor'] = (2,15)
+    BOARD_DIV['player_hand_anchor'] = (2,16)
     BOARD_DIV['active_card_zone_length'] = 89
     BOARD_DIV['active_card_anchor'] = (27, 2)
     
-    PILE_DIV['draw_pile_anchor'] = (0, 1)
-    PILE_DIV['discard_pile_anchor'] = (0, 9)
+    PILE_DIV['draw_pile_anchor'] = (0, 0)
+    PILE_DIV['discard_pile_anchor'] = (0, 8)
     PILE_DIV['pile_display_length'] = 118
 def _update():
     global BOARD_DIV
@@ -169,7 +169,7 @@ def build_div(div):
         for i in range(len(div['cursor_option_values'])):
             if type(SETTING_DIV['cursor_display_values'][i]) == int: div['pad'].addstr(6+i, 11+SETTING_DIV['cursor_display_values'][i], str(SETTING_DIV['cursor_option_values'][i]))
             else: div['pad'].addstr(6+i, 11, SETTING_DIV['cursor_display_values'][i][SETTING_DIV['cursor_option_values'][i]])
-    div['origin'] = ((rows - div['size'][0])//2+1 , (columns - div['size'][1]) // 2+1)
+    div['origin'] = ((rows - div['size'][0])//2+1, (columns - div['size'][1]) // 2+1)
     div['end'] = (div['origin'][0] + div['size'][0], div['origin'][1] + div['size'][1])
     return div
 
