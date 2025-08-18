@@ -16,7 +16,8 @@ from random import randint, shuffle
 KEY_MAP_DISPLAY_TABLE=['royal_execution']
 BOARD_DIV = {
     'index': 0, 'src': 'boards/royal_execution_board.txt', 'pad': None,
-    'draw_pile': [], 'discard_pile': [], 'royal_piles': [ [], [], [], [] ], 'executor_piles': [ [], [], [], [] ], 'hand': [],
+    'draw_pile': [], 'discard_pile': [], 'royal_piles': [ [], [], [], [] ], 'executor_piles': [ [], [], [], [] ], 
+    'hand': [],
     'deck_progress_index': 0,
     'selected_card_index': -1, 'selected_pile_index': -1,
 }
@@ -33,6 +34,7 @@ def _start():
     render_div(BOARD_DIV)
 # Run every frame
 def _update():
+    if key_state_tracker.get_key_state('backspace', key_state_tracker.JUST_PRESSED): new_game()
     update_board()
 # Exit function
 def _end():
@@ -42,20 +44,11 @@ def setup_var():
     BOARD_DIV['royal_card_zone_anchor'] = (3,1)
     BOARD_DIV['royal_card_anchors'] = (((0,1),(0,2),(0,3)),((12,1),(12,2),(12,3)),((24,1),(24,2),(24,3)),((36,1),(36,2),(36,3)))
     BOARD_DIV['royal_pile_zone'] = ((0,0), (44,12))
-    BOARD_DIV['drew_card_anchors'] = ((55, 3), (58, 3), (61, 3))
+    BOARD_DIV['drew_card_anchors'] = ((56, 4), (59, 4), (62, 4))
     BOARD_DIV['royal_pile_cursor_anchor_points'] = ((9, 14), (21, 14), (33, 14), (45, 14))
-    BOARD_DIV['pad'].addstr(
-        BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['royal_pile_cursor_anchor_points'][0][1], 
-        BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['royal_pile_cursor_anchor_points'][0][0], '[z]')
-    BOARD_DIV['pad'].addstr(
-        BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['royal_pile_cursor_anchor_points'][1][1], 
-        BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['royal_pile_cursor_anchor_points'][1][0], '[x]')
-    BOARD_DIV['pad'].addstr(
-        BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['royal_pile_cursor_anchor_points'][2][1], 
-        BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['royal_pile_cursor_anchor_points'][2][0], '[c]')
-    BOARD_DIV['pad'].addstr(
-        BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['royal_pile_cursor_anchor_points'][3][1], 
-        BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['royal_pile_cursor_anchor_points'][3][0], '[v]')
+    BOARD_DIV['discard_pile_render_anchor'] = (-1,17)
+
+    render_div(BOARD_DIV)
 def build_div(div):
     with open(resources.screen_data_path / div['src'], 'r', encoding='utf-8') as f:
         div['size'] = tuple(map(int, f.readline().split()))
@@ -79,9 +72,13 @@ def render_div(div):
 def new_game():
     global BOARD_DIV
     BOARD_DIV['royal_piles'] = [ [], [], [], [] ]
-    BOARD_DIV['draw_pile'] = []
+    BOARD_DIV['executor_piles'] = [ [], [], [], [] ]
+    BOARD_DIV['selected_card_index'] = 0
+    BOARD_DIV['selected_pile_index'] = 0
     BOARD_DIV['discard_pile'] = []
+    BOARD_DIV['draw_pile'] = []
     BOARD_DIV['hand'] = []
+    
     
     for tavern_rank in ('A','2','3','4','5','6','7','8','9','10'):
         for suit in SUITS:
@@ -103,17 +100,25 @@ def new_game():
             marker += 1
     render_royal_piles()
     render_draw_pile()
+    render_discard_pile()
+    render_div(BOARD_DIV)
 
 def draw_hand():
     global BOARD_DIV
+    if BOARD_DIV['draw_pile'] == []: new_game(); return
     # Discard all remaining card in hand
+    BOARD_DIV['hand'] = [card for card in BOARD_DIV['hand'] if card != 'INVALID_CARD']
     BOARD_DIV['discard_pile'] += BOARD_DIV['hand']
+    render_discard_pile()
     BOARD_DIV['hand'] = []
+    
     for i in range(3):
         if not draw_card():
             lose()
             break
     render_draw_pile()
+    render_div(BOARD_DIV)
+    
 def draw_card():
     global BOARD_DIV
     if len(BOARD_DIV['draw_pile']) == 0:
@@ -121,13 +126,16 @@ def draw_card():
     if len(BOARD_DIV['draw_pile']) > 0:
         BOARD_DIV['hand'].append(BOARD_DIV['draw_pile'].pop())
     return True
-
 def play_card() -> int:
     global BOARD_DIV
     if BOARD_DIV['selected_card_index'] == -1 or BOARD_DIV['selected_pile_index'] == -1:
         return 1 # No card selected
+    if BOARD_DIV['hand'][BOARD_DIV['selected_card_index']] == 'INVALID_CARD':
+        return 9 # Invalid card selected
     if len(BOARD_DIV['hand']) == 0:
         return 2 # No card in hand
+    if len(BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']]) == 0: 
+        return 8 # No royal card in the pile
     if len(BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']]) > 3:
         return 3 # executor pile is full
     card = BOARD_DIV['hand'][BOARD_DIV['selected_card_index']]
@@ -150,22 +158,23 @@ def play_card() -> int:
             suit(BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']][-1])
         ): 
         return 7 # Third card fail the suit check
-    if len(BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']]) == 0: 
-        return 8 # No royal card in the pile
+
     
-    BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']].append(BOARD_DIV['hand'].pop(BOARD_DIV['selected_card_index']))
-    BOARD_DIV['selected_card_index'] = -1
+    BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']].append(BOARD_DIV['hand'][BOARD_DIV['selected_card_index']])
+    BOARD_DIV['hand'][BOARD_DIV['selected_card_index']] = 'INVALID_CARD'
+    BOARD_DIV['selected_card_index'] = -1 if len(BOARD_DIV['hand']) == 0 else clamp(BOARD_DIV['selected_card_index'], 0, len(BOARD_DIV['hand']) - 1)
     if executor_index == 2: # If the executor pile is full, remove the royal card
         BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']].pop()
         BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']].clear()
     render_royal_piles()
     render_draw_pile()
+    render_div(BOARD_DIV)
     return 0
-
-
+def play_joker():
+    return
 def render_royal_piles():
     global BOARD_DIV
-    keybind_char = ['z', 'x', 'c', 'v']
+    keybind_char = ['*', '*', '*', '*']
     for i in range(15):
         BOARD_DIV['pad'].addstr(BOARD_DIV['royal_card_zone_anchor'][1] + 1 + i, BOARD_DIV['royal_card_zone_anchor'][0], ' ' * 49)
     for x in range(4):
@@ -201,10 +210,10 @@ def render_royal_piles():
                 BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['royal_card_anchors'][x][y][0], 
                 executor_pile_anchor_x + y * 2, 
                 color_pair_obj=resources.get_color_pair_obj((1+SUITS.index(suit(BOARD_DIV['executor_piles'][x][y])))))
-    render_div(BOARD_DIV) # FUCK IT
-
+RANK = ('A','2','3','4','5','6','7','8','9','10','J','Q','K')
+SUIT = ('C', 'S', 'D', 'H')
 def render_draw_pile():
-    BOARD_DIV['pad'].addstr(BOARD_DIV['royal_card_zone_anchor'][1] + 2, BOARD_DIV['royal_card_zone_anchor'][0] + 52, f'×{len(BOARD_DIV["draw_pile"])}')
+    BOARD_DIV['pad'].addstr(BOARD_DIV['royal_card_zone_anchor'][1] + 3, BOARD_DIV['royal_card_zone_anchor'][0] + 53, '×' + f'{len(BOARD_DIV["draw_pile"])}'.rjust(2, '0'))
 
     for i in range(-1, 7, 1):
         BOARD_DIV['pad'].addstr(
@@ -213,50 +222,64 @@ def render_draw_pile():
     image_drawer.draw_colored_image(
                     BOARD_DIV['pad'], 
                     resources.screen_data_path/'drawings'/'cards'/'___card.txt', 
-                    BOARD_DIV['royal_card_zone_anchor'][0]+51, BOARD_DIV['royal_card_zone_anchor'][1] + 3, color_pair_obj=resources.get_color_pair_obj(5))
+                    BOARD_DIV['royal_card_zone_anchor'][0]+52, BOARD_DIV['royal_card_zone_anchor'][1] + 4, color_pair_obj=resources.get_color_pair_obj(5))
     for i in range(len(BOARD_DIV['hand'])):
+        if BOARD_DIV['hand'][i] == 'INVALID_CARD':
+            continue
         image_drawer.draw_colored_image(
             BOARD_DIV['pad'], 
             resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV["hand"][i]}.txt', 
             BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['drew_card_anchors'][i][0], 
-            BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['drew_card_anchors'][i][1] + (-1 if i == BOARD_DIV['selected_card_index'] else 0), 
+            BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['drew_card_anchors'][i][1] + (0 if i == BOARD_DIV['selected_card_index'] else 0), 
             color_pair_obj=resources.get_color_pair_obj((1+SUITS.index(suit(BOARD_DIV['hand'][i])))))
-    render_div(BOARD_DIV) # FUCK IT
 
+    for i in range(4):
+        BOARD_DIV['pad'].addstr(
+            BOARD_DIV['royal_card_zone_anchor'][1] + 18 + i, 
+            BOARD_DIV['royal_card_zone_anchor'][0] + 48, ' ' * 26)
+    full_pile = BOARD_DIV['draw_pile'] + [x for sublist in BOARD_DIV['royal_piles'] for x in sublist]
+    for i in range(len(full_pile)):
+        x_offset = RANK.index(rank(full_pile[i])) * 2
+        y_offset = SUIT.index(suit(full_pile[i]))
+        BOARD_DIV['pad'].addstr(
+            BOARD_DIV['royal_card_zone_anchor'][1] + 18 + y_offset,
+            BOARD_DIV['royal_card_zone_anchor'][0] + 48 + x_offset, '•', resources.get_color_pair_obj(y_offset+1))
+def render_discard_pile():
+    BOARD_DIV['pad'].addstr(
+        BOARD_DIV['royal_card_zone_anchor'][1] + 16,
+        BOARD_DIV['royal_card_zone_anchor'][0], 
+            (f'DISCARDED CARDS ({len(BOARD_DIV['discard_pile'])}/5) ──────────────────────────────────────────────') if len(BOARD_DIV['discard_pile']) < 5 else 
+              'YOU LOST! NOT ENOUGH CARD TO KILL ALL ROYALS! ', 
+        resources.get_color_pair_obj(0 if len(BOARD_DIV['discard_pile']) < 5 else 4)
+    )
+    for i in range(7):
+        BOARD_DIV['pad'].addstr(BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['discard_pile_render_anchor'][1] + i, BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['discard_pile_render_anchor'][0], ' ' * 45)
+    for i in range(min(len(BOARD_DIV['discard_pile']), 5)):
+        image_drawer.draw_colored_image(
+            BOARD_DIV['pad'], 
+            resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV["discard_pile"][i]}.txt', 
+            BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['discard_pile_render_anchor'][0] + i * 9, 
+            BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['discard_pile_render_anchor'][1], 
+            color_pair_obj=resources.get_color_pair_obj((1+SUITS.index(suit(BOARD_DIV['discard_pile'][i])))))
 
 def suit(card:str) -> str: return card[-1]
 def rank(card:str) -> str: return card[:-1]
 def point(rank:str) -> int: return POINT_LOOKUP_TABLE[rank]
 
 def update_board():
-    if key_state_tracker.get_key_state('a', key_state_tracker.JUST_PRESSED): draw_hand()
-    if key_state_tracker.get_key_state('space', key_state_tracker.JUST_PRESSED): 
-        # Logging before play_card
-        logging.info(f'Attempting to play card. BOARD_DIV before: {repr(BOARD_DIV)}')
-        exit_code = play_card()
-        # Logging after play_card
-        logging.info(f'Attempted play_card. BOARD_DIV after: {repr(BOARD_DIV)}, exit_code: {exit_code}')
-    new_index = -2
-    if key_state_tracker.get_key_state('1'):  new_index = 0
-    elif key_state_tracker.get_key_state('2'): new_index = 1
-    elif key_state_tracker.get_key_state('3'): new_index = 2
-    if (new_index != -2):
-        new_index = clamp(new_index, 0, len(BOARD_DIV['hand']) - 1)
-        if (new_index != BOARD_DIV['selected_card_index']): 
-            BOARD_DIV['selected_card_index'] = new_index
-            render_draw_pile()
-
-    new_index = -2
-    if key_state_tracker.get_key_state('z'): new_index = 0
-    elif key_state_tracker.get_key_state('x'): new_index = 1
-    elif key_state_tracker.get_key_state('c'): new_index = 2
-    elif key_state_tracker.get_key_state('v'): new_index = 3
-    if (new_index != -2):
-        new_index = clamp(new_index, 0, 3)
-        if (new_index != BOARD_DIV['selected_pile_index']): 
-            BOARD_DIV['selected_pile_index'] = new_index
-            render_royal_piles()
-        
+    if key_state_tracker.get_key_state('w', key_state_tracker.JUST_PRESSED): draw_hand()
+    vector = -1
+    if key_state_tracker.get_key_state('i', key_state_tracker.JUST_PRESSED): vector = 0
+    elif key_state_tracker.get_key_state('o', key_state_tracker.JUST_PRESSED): vector = 1
+    elif key_state_tracker.get_key_state('p', key_state_tracker.JUST_PRESSED): vector = 2
+    elif key_state_tracker.get_key_state('j', key_state_tracker.JUST_PRESSED): play_joker(); return
+    if vector != -1: 
+        BOARD_DIV['selected_card_index'] = vector
+        play_card(); render_draw_pile(); render_div(BOARD_DIV)
+    vector = key_state_tracker.get_axis('a', 'd')
+    if vector != 0: 
+        BOARD_DIV['selected_pile_index'] = (BOARD_DIV['selected_pile_index'] + vector) % 4
+        render_royal_piles(); render_div(BOARD_DIV)
 def lose():
     return
 def clamp(val:int, lower_bound:int, upper_bound:int) -> int: return max(min(val, upper_bound), lower_bound)

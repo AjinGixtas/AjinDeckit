@@ -1,1 +1,5 @@
-0 0
+4 40
+[I] [O] [P] - Play card
+[A] [S] [D] [F] - Select pile
+[Backspace] - New game
+[J] - Put joker into the selected pile
