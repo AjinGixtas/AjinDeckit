@@ -16,7 +16,7 @@ def _start(_stdscr):
     init_pair(5, COLOR_GREEN, COLOR_BLACK)
     init_pair(6, COLOR_MAGENTA, COLOR_BLACK)
     init_pair(7, COLOR_BLACK, COLOR_BLACK)
-    screen_data_path = Path(sys._MEIPASS if getattr(sys, 'frozen', False) else (dirname(abspath(__file__)) + '/..')  + '/screen_data')
+    screen_data_path = Path((sys._MEIPASS if getattr(sys, 'frozen', False) else (dirname(abspath(__file__)) + '/..')) + '/screen_data')
     stdscr = _stdscr
 # There is no standarized numbering system yet, just wing it!
 def get_color_pair_obj(index): return color_pair(index)
@@ -27,3 +27,15 @@ def get_first_dupe_index(arr, val):
     for i in range(len(arr)): 
         if arr[i] == val: return i
     return -1
+def list_meipass_contents():
+    import os
+    import sys
+    if hasattr(sys, "_MEIPASS"):  # Only exists in PyInstaller one-file mode
+        root = sys._MEIPASS
+        print(f"Bundled files are extracted to: {root}\n")
+        for r, d, f in os.walk(root):
+            for name in f:
+                relpath = os.path.relpath(os.path.join(r, name), root)
+                print(relpath)
+    else:
+        print("Not running from a PyInstaller one-file bundle")

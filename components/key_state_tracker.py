@@ -7,7 +7,7 @@ JUST_PRESSED = 0
 PRESSED = 1
 JUST_RELEASED = 2
 BLOCK_TIME = .25
-TARGET_WINDOW_TITLE = "main.py"
+TARGET_WINDOW_TITLE = "AjinDeckit.exe"
 keyboard_listener, hotkey_listener = None, None
 def is_window_focused():
     active_window = getActiveWindow()
@@ -27,6 +27,7 @@ def _start():
     keyboard_listener.start()
     hotkey_listener.start()
 def _update():
+    print(key_states)
     key_states[JUST_PRESSED].clear()
     key_states[JUST_RELEASED].clear()
 def _end():
