@@ -5,3 +5,5 @@ log.txt
 /pages/__pycache__
 /components/__pycache__
 /pages/__pycache__
+/build
+/dist
