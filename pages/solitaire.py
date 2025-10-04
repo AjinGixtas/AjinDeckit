@@ -109,6 +109,7 @@ def new_game():
     BOARD_DIV['tableau_piles']=[[] for _ in range(7)]
     BOARD_DIV['facedown_card_amounts']=[i for i in range(7)]
     BOARD_DIV['focused_index']=[-1, -1]
+    BOARD_DIV['joker_remain'] = 2
     for suit in SUITS:
         for rank in RANKS:
             BOARD_DIV['stock_pile'].append(rank+suit)

@@ -78,7 +78,7 @@ def new_game():
     BOARD_DIV['discard_pile'] = []
     BOARD_DIV['draw_pile'] = []
     BOARD_DIV['hand'] = []
-    
+    BOARD_DIV['joker_remain'] = 2
     
     for tavern_rank in ('A','2','3','4','5','6','7','8','9','10'):
         for suit in SUITS:
@@ -98,6 +98,10 @@ def new_game():
         for j in range(3):
             BOARD_DIV['royal_piles'][i].append(royal_pile[marker])
             marker += 1
+    BOARD_DIV['pad'].addstr(
+        BOARD_DIV['royal_card_zone_anchor'][1] + 23,
+        BOARD_DIV['royal_card_zone_anchor'][0] + 51, 
+        f'JOKER REMAIN: {BOARD_DIV["joker_remain"]}/2')
     render_royal_piles()
     render_draw_pile()
     render_discard_pile()
@@ -130,7 +134,7 @@ def play_card() -> int:
     global BOARD_DIV
     if BOARD_DIV['selected_card_index'] == -1 or BOARD_DIV['selected_pile_index'] == -1:
         return 1 # No card selected
-    if BOARD_DIV['hand'][BOARD_DIV['selected_card_index']] == 'INVALID_CARD':
+    if len(BOARD_DIV['hand']) > BOARD_DIV['selected_card_index'] and BOARD_DIV['hand'][BOARD_DIV['selected_card_index']] == 'INVALID_CARD':
         return 9 # Invalid card selected
     if len(BOARD_DIV['hand']) == 0:
         return 2 # No card in hand
@@ -171,7 +175,20 @@ def play_card() -> int:
     render_div(BOARD_DIV)
     return 0
 def play_joker():
-    return
+    if BOARD_DIV['joker_remain'] <= 0: return
+    BOARD_DIV['joker_remain'] -= 1
+    executor_index = len(BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']])
+    BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']].append('!!')
+    if executor_index == 2: # If the executor pile is full, remove the royal card
+        BOARD_DIV['royal_piles'][BOARD_DIV['selected_pile_index']].pop()
+        BOARD_DIV['executor_piles'][BOARD_DIV['selected_pile_index']].clear()
+    BOARD_DIV['pad'].addstr(
+        BOARD_DIV['royal_card_zone_anchor'][1] + 23,
+        BOARD_DIV['royal_card_zone_anchor'][0] + 51, 
+        f'JOKER REMAIN: {BOARD_DIV["joker_remain"]}/2')
+    render_royal_piles()
+    render_draw_pile()
+    render_div(BOARD_DIV)
 def render_royal_piles():
     global BOARD_DIV
     keybind_char = ['*', '*', '*', '*']
@@ -209,7 +226,9 @@ def render_royal_piles():
                 resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV['executor_piles'][x][y]}.txt', 
                 BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['royal_card_anchors'][x][y][0], 
                 executor_pile_anchor_x + y * 2, 
-                color_pair_obj=resources.get_color_pair_obj((1+SUITS.index(suit(BOARD_DIV['executor_piles'][x][y])))))
+                color_pair_obj=resources.get_color_pair_obj(
+                    (
+                        (1 + SUITS.index(suit(BOARD_DIV['executor_piles'][x][y])) if suit(BOARD_DIV['executor_piles'][x][y]) != '!' else 6))))
 RANK = ('A','2','3','4','5','6','7','8','9','10','J','Q','K')
 SUIT = ('C', 'S', 'D', 'H')
 def render_draw_pile():
@@ -245,20 +264,25 @@ def render_draw_pile():
             BOARD_DIV['royal_card_zone_anchor'][1] + 18 + y_offset,
             BOARD_DIV['royal_card_zone_anchor'][0] + 48 + x_offset, '•', resources.get_color_pair_obj(y_offset+1))
 def render_discard_pile():
+    msg = ""
+    if len(BOARD_DIV['discard_pile']) < 5:
+        msg = f'DISCARDED CARDS ({len(BOARD_DIV["discard_pile"])}/5) ─────────────────────────────────────'
+    elif len(BOARD_DIV['discard_pile']) <= 7:
+        msg = f'CARD SHORTAGE! NEED JOKERS TO KILL ROYAL CARDS ({len(BOARD_DIV["discard_pile"])}/7) '
+    else: 
+        msg = f'NOT ENOUGH CARDS TO KILL ALL ROYALS ({len(BOARD_DIV["discard_pile"])}/7) ───────────'
     BOARD_DIV['pad'].addstr(
         BOARD_DIV['royal_card_zone_anchor'][1] + 16,
-        BOARD_DIV['royal_card_zone_anchor'][0], 
-            (f'DISCARDED CARDS ({len(BOARD_DIV['discard_pile'])}/5) ──────────────────────────────────────────────') if len(BOARD_DIV['discard_pile']) < 5 else 
-              'YOU LOST! NOT ENOUGH CARD TO KILL ALL ROYALS! ', 
+        BOARD_DIV['royal_card_zone_anchor'][0], msg, 
         resources.get_color_pair_obj(0 if len(BOARD_DIV['discard_pile']) < 5 else 4)
     )
     for i in range(7):
         BOARD_DIV['pad'].addstr(BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['discard_pile_render_anchor'][1] + i, BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['discard_pile_render_anchor'][0], ' ' * 45)
-    for i in range(min(len(BOARD_DIV['discard_pile']), 5)):
+    for i in range(min(len(BOARD_DIV['discard_pile']), 7)):
         image_drawer.draw_colored_image(
             BOARD_DIV['pad'], 
             resources.screen_data_path/'drawings'/'cards'/f'{BOARD_DIV["discard_pile"][i]}.txt', 
-            BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['discard_pile_render_anchor'][0] + i * 9, 
+            BOARD_DIV['royal_card_zone_anchor'][0] + BOARD_DIV['discard_pile_render_anchor'][0] + i * 4, 
             BOARD_DIV['royal_card_zone_anchor'][1] + BOARD_DIV['discard_pile_render_anchor'][1], 
             color_pair_obj=resources.get_color_pair_obj((1+SUITS.index(suit(BOARD_DIV['discard_pile'][i])))))
 
@@ -287,5 +311,5 @@ def clamp(val:int, lower_bound:int, upper_bound:int) -> int: return max(min(val,
 
 POINT_LOOKUP_TABLE = {
     'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 
-    '10': 10, 'J': 11, 'Q': 12, 'K': 13
+    '10': 10, 'J': 11, 'Q': 12, 'K': 13, '!': 10
 }
