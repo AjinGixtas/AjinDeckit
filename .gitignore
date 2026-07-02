@@ -7,3 +7,9 @@ log.txt
 /pages/__pycache__
 /build
 /dist
+/build
+/build
+/components
+dist/AjinDeckit.exe
+dist/royal_execution.log
+royal_execution.log

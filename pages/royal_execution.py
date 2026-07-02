@@ -1,14 +1,3 @@
-# --- AI CODE START ---
-import logging
-
-logging.basicConfig(
-    filename='royal_execution.log',
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s %(message)s'
-)
-# --- AI CODE END ---
-
-
 from components import resources, image_drawer, scene_manager, key_state_tracker
 from components.key_state_tracker import get_key_state, get_axis
 from curses import newpad, color_pair
