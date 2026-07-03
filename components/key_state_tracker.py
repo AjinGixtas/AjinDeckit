@@ -27,7 +27,6 @@ def _start():
     keyboard_listener.start()
     hotkey_listener.start()
 def _update():
-    print(key_states)
     key_states[JUST_PRESSED].clear()
     key_states[JUST_RELEASED].clear()
 def _end():
